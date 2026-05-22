@@ -69,7 +69,7 @@ class PortfoliosController < ProjectsController
 
         turbo_streams << turbo_stream.replace("flash-messages", helpers.render_flash_messages)
 
-        render turbo_stream: turbo_streams
+        render turbo_stream: resolve_turbo_streams
       end
     end
   end
