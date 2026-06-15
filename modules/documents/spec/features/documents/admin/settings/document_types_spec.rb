@@ -194,7 +194,7 @@ RSpec.describe "Document types admin", :js do
         click_on accessible_name: "Document type actions"
       end
 
-      expect(page).to have_button("Edit")
+      expect(page).to have_link("Edit")
       expect(page).to have_button("Delete")
       expect(page).to have_no_button(I18n.t(:label_sort_highest))
       expect(page).to have_no_button(I18n.t(:label_sort_higher))
