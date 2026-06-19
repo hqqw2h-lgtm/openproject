@@ -30,7 +30,7 @@
 
 require "rails_helper"
 
-RSpec.describe Workflows::TableComponent, type: :component do
+RSpec.describe Workflows::TypeListComponent, type: :component do
   include Rails.application.routes.url_helpers
 
   def render_component(...)
@@ -41,36 +41,27 @@ RSpec.describe Workflows::TableComponent, type: :component do
     render_component(types)
   end
 
-  shared_examples_for "rendering Border Box headings" do |text:|
-    it "renders Border Box heading '#{text}'" do
-      expect(rendered_component).to have_css ".Box-header", text:
-    end
-  end
-
   context "with no types" do
     let(:types) { create_list(:type, 0) }
 
-    it_behaves_like "rendering Box", row_count: 1
-    it_behaves_like "rendering Border Box headings", text: "Type"
-    it_behaves_like "rendering Blank Slate", heading: "Nothing to display"
+    it_behaves_like "rendering Border Box List heading", text: "Type", level: 2
+    it_behaves_like "rendering an empty Border Box List", heading: "Nothing to display"
   end
 
   context "with types" do
     let(:types) { create_list(:type, 2) }
 
     it_behaves_like "rendering Box", row_count: 2
-    it_behaves_like "rendering Border Box headings", text: "Type"
+    it_behaves_like "rendering Border Box List heading", text: "Type", level: 2
 
-    it "renders row content" do
-      expect(rendered_component).to have_css("li", text: types.first.name) do |row|
-        expect(row).to have_link(types.first.name, href: edit_workflow_path(types.first))
-        expect(row).to have_link("Edit", href: edit_workflow_path(types.first))
-        expect(row).to have_link("Copy", href: new_workflow_copy_path(types.first))
-      end
-      expect(rendered_component).to have_css("li", text: types.second.name) do |row|
-        expect(row).to have_link(types.second.name, href: edit_workflow_path(types.second))
-        expect(row).to have_link("Edit", href: edit_workflow_path(types.second))
-        expect(row).to have_link("Copy", href: new_workflow_copy_path(types.second))
+    it "renders each type row with its name link and an actions menu", :aggregate_failures do
+      types.each do |type|
+        expect(rendered_component).to have_css("li.Box-row", text: type.name) do |row|
+          expect(row).to have_link(type.name, href: edit_workflow_path(type))
+          expect(row).to have_css("action-menu")
+          expect(row).to have_link("Edit", href: edit_workflow_path(type))
+          expect(row).to have_link("Copy", href: new_workflow_copy_path(type))
+        end
       end
     end
   end

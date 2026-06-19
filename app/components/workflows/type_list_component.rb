@@ -29,7 +29,7 @@
 #++
 
 module Workflows
-  class TableComponent < ApplicationComponent
+  class TypeListComponent < ApplicationComponent
     include OpPrimer::ComponentHelpers
 
     def types = model

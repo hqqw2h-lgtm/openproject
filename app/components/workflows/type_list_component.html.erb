@@ -28,14 +28,11 @@ See COPYRIGHT and LICENSE files for more details.
 ++#%>
 
 <%=
-  render(Primer::Beta::BorderBox.new) do |component|
-    component.with_header do |header|
-      header.with_title(tag: :h2) do
-        Type.model_name.human
-      end
-    end
+  render(OpenProject::Common::BorderBoxListComponent.new(container: "workflows--types")) do |list|
+    list.with_header(title: Type.model_name.human, title_tag: :h2)
+
     types.each do |type|
-      component.with_row(data: { "filter--filter-list-target": "searchItem" }) do
+      list.with_item(data: { "filter--filter-list-target": "searchItem" }) do
         flex_layout(align_items: :center, justify_content: :space_between) do |type_row|
           type_row.with_column do
             link_to type.name, edit_workflow_path(type), class: "text-bold"
@@ -48,28 +45,24 @@ See COPYRIGHT and LICENSE files for more details.
                 "aria-label": "Actions"
               )
 
-              menu.with_item(label:t("button_edit"),
-                             tag: :a,
-                             href: edit_workflow_path(type)) do |item|
+              menu.with_item(
+                label: t("button_edit"),
+                tag: :a,
+                href: edit_workflow_path(type)
+              ) do |item|
                 item.with_leading_visual_icon(icon: :pencil)
               end
               menu.with_divider
-              menu.with_item(label: t("button_copy"),
-                             content_arguments: { data: { controller: "async-dialog" }},
-                             tag: :a,
-                             href: new_workflow_copy_path(type)) do |item|
+              menu.with_item(
+                label: t("button_copy"),
+                content_arguments: { data: { controller: "async-dialog" } },
+                tag: :a,
+                href: new_workflow_copy_path(type)
+              ) do |item|
                 item.with_leading_visual_icon(icon: :copy)
               end
             end
           end
-        end
-      end
-    end
-    if types.empty?
-      component.with_row do
-        render(Primer::Beta::Blankslate.new(border: false)) do |component|
-          component.with_heading(tag: :h2) { I18n.t(:label_nothing_display) }
-          component.with_description { I18n.t(:no_results_title_text) }
         end
       end
     end
