@@ -28,30 +28,33 @@
 # See COPYRIGHT and LICENSE files for more details.
 #++
 
-module WorkPackageTypes
-  class ExportTemplateRowComponent < ApplicationComponent
-    include ApplicationHelper
-    include OpPrimer::ComponentHelpers
-    include OpTurbo::Streamable
+require "rails_helper"
 
-    def initialize(type:, template:)
-      super
+RSpec.describe WorkPackageTypes::ExportTemplateRowComponent, type: :component do
+  include Rails.application.routes.url_helpers
 
-      @template = template
-      @type = type
-    end
+  let(:type) { create(:type) }
+  let(:template) { type.pdf_export_templates.list.first }
 
-    def wrapper_uniq_by
-      @template.id
-    end
+  subject(:rendered_component) { render_inline(described_class.new(type:, template:)) }
 
-    private
+  it "renders a unique wrapper derived from the template id" do
+    expect(rendered_component)
+      .to have_css("#work-package-types-export-template-row-component-#{template.id}", count: 1)
+  end
 
-    def toggle_label
-      I18n.t(
+  it "renders the template label and caption" do
+    expect(rendered_component).to have_text(template.label)
+    expect(rendered_component).to have_text(template.caption)
+  end
+
+  it "labels the toggle button with its template and reflects the enabled state" do
+    expect(rendered_component).to have_button(
+      accessible_name: I18n.t(
         "types.edit.export_configuration.pdf_export_templates.actions.label_toggle_template",
-        template: @template.label
-      )
-    end
+        template: template.label
+      ),
+      aria: { pressed: template.enabled }
+    )
   end
 end
