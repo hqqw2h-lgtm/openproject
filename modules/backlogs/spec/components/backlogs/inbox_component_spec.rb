@@ -117,14 +117,14 @@ RSpec.describe Backlogs::InboxComponent, type: :component do
     end
 
     it "renders a row for each work package", :aggregate_failures do
-      expect(page).to have_css(".Box-row", count: 2)
+      expect(page).to have_css(".Box-row:not([data-empty-list-item])", count: 2)
 
       # renders the subject of each work package
       expect(page).to have_text("First item")
       expect(page).to have_text("Second item")
 
-      # does not show the blankslate
-      expect(page).to have_no_css("h4", text: "Backlog inbox is empty")
+      # does render the blankslate but it is being hidden by CSS
+      expect(page).to have_css("h4", text: "Backlog inbox is empty")
     end
 
     it "renders story points on each work package card" do
@@ -147,7 +147,7 @@ RSpec.describe Backlogs::InboxComponent, type: :component do
       let(:work_packages) { create_list(:work_package, threshold, project:) }
 
       it "renders all items without pagination" do
-        expect(page).to have_css(".Box-row", count: threshold)
+        expect(page).to have_css(".Box-row:not([data-empty-list-item])", count: threshold)
         expect(page).to have_no_css("##{show_more_id}")
       end
     end
@@ -158,7 +158,10 @@ RSpec.describe Backlogs::InboxComponent, type: :component do
       let(:work_packages) { create_list(:work_package, total, project:) }
 
       it "renders only the first page and last page items (not all)" do
-        expect(page).to have_css(".Box-row", count: truncate_middle + tail_size + 1) # +1 for "show more" row
+        expect(page).to have_css(
+          ".Box-row:not([data-empty-list-item])",
+          count: truncate_middle + tail_size + 1 # +1 is for "show more" row
+        )
         expect(page).to have_css("##{show_more_id}")
         expect(page).to have_text("Show #{middle_count} more items")
       end
@@ -201,7 +204,7 @@ RSpec.describe Backlogs::InboxComponent, type: :component do
       let(:work_packages) { create_list(:work_package, total, project:) }
 
       it "renders all items without pagination" do
-        expect(page).to have_css(".Box-row", count: total)
+        expect(page).to have_css(".Box-row:not([data-empty-list-item])", count: total)
         expect(page).to have_no_css("##{show_more_id}")
       end
     end

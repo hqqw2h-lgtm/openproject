@@ -108,7 +108,7 @@ RSpec.describe Backlogs::BucketComponent, type: :component do
       end
 
       it "renders one shared-card row per work package" do
-        expect(rendered_component).to have_css(".Box-row", count: 1)
+        expect(rendered_component).to have_css(".Box-row:not([data-empty-list-item])", count: 1)
         expect(rendered_component).to have_text("Bucket Work Package")
         expect(rendered_component).to have_text("##{work_package.id}")
       end

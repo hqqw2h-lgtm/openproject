@@ -96,7 +96,7 @@ RSpec.describe Backlogs::SprintComponent, type: :component do
       end
 
       it "renders one Box-row per work package" do
-        expect(rendered_component).to have_css(".Box-row", count: 2)
+        expect(rendered_component).to have_css(".Box-row:not([data-empty-list-item])", count: 2)
         expect(rendered_component).to have_text(work_package1.subject)
         expect(rendered_component).to have_text(work_package2.subject)
       end
