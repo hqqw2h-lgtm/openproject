@@ -14,8 +14,12 @@
     border-bottom: none
     padding-bottom: var(--stack-padding-condensed)
 
-  > ul > .Box-row:first-of-type
-    border-top: none
+  > ul
+    &:has(> :not([data-empty-list-item]):not([data-dragging="source"]))
+      > .Box-row[data-empty-list-item]
+        display: none
+    > .Box-row:first-of-type
+      border-top: none
 
 .op-border-box-list
   --op-border-box-list-header-row-gap: calc(var(--stack-gap-condensed) / 2)
