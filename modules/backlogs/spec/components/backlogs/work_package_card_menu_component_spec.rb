@@ -80,7 +80,7 @@ RSpec.describe Backlogs::WorkPackageCardMenuComponent, type: :component do
       render_component
 
       expect(page).to have_element(:ul, id: /\Awork_package_#{work_package.id}_menu-list\z/)
-      expect(page).to have_element(:button, id: /\Awork_package_#{work_package.id}_menu_open_details\z/)
+      expect(page).to have_element(:a, id: /\Awork_package_#{work_package.id}_menu_open_details\z/)
       expect(page).to have_element(:a, id: /\Awork_package_#{work_package.id}_menu_open_fullscreen\z/)
       expect(page).to have_element(:"clipboard-copy", id: /\Awork_package_#{work_package.id}_menu_copy_url_to_clipboard\z/)
       expect(page).to have_element(:"clipboard-copy", id: /\Awork_package_#{work_package.id}_menu_copy_work_package_id\z/)
@@ -92,7 +92,7 @@ RSpec.describe Backlogs::WorkPackageCardMenuComponent, type: :component do
       expect(page).to have_text(I18n.t(:"js.button_open_details"))
       expect(page).to have_octicon(:"op-view-split")
       expect(page).to have_css(
-        "button[data-action='backlogs--story#openSplitPane']",
+        "a[href$='/backlogs/backlog/details/#{work_package.id}'][data-action='backlogs--story#openSplitPane:prevent']",
         text: I18n.t(:"js.button_open_details")
       )
     end
