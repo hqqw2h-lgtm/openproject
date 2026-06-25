@@ -18,8 +18,11 @@
     &:has(> :not([data-empty-list-item]):not([data-dragging="source"]))
       > .Box-row[data-empty-list-item]
         display: none
-    > .Box-row:first-of-type
-      border-top: none
+    > .Box-row
+      &:first-of-type
+        border-top: none
+      &[data-empty-list-item] + :not([data-dragging="source"])
+        border-top: none
 
 .op-border-box-list
   --op-border-box-list-header-row-gap: calc(var(--stack-gap-condensed) / 2)
