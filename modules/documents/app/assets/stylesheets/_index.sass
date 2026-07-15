@@ -30,6 +30,12 @@ $blocknote-max-width: 800px
     padding-top: 10px // Small padding to display cursor label when at the very top
     padding-inline: 0 // No inline padding necessary given transparent background
     font-size: var(--body-font-size)
+
+    // Desktop only: gutter for the drag handle + "+", kept in sync with the
+    // .op-document-view--header indent (same $breakpoint-lg) so title and body
+    // align. On phones the editor stays flush, matching the header there.
+    @media screen and (min-width: $breakpoint-lg)
+      padding-left: 40px
   > .bn-default-styles
     font-family: var(--body-font-family)
 

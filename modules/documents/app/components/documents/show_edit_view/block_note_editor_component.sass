@@ -30,5 +30,11 @@
       padding-left: var(--base-size-16, 1rem)
       padding-right: var(--base-size-16, 1rem)
 
+  // Indent the title to match the editor body, which is offset by the
+  // .bn-editor drag-handle gutter (16px column padding + 40px gutter = 56px)
+  &--header
+    @media screen and (min-width: $breakpoint-lg)
+      padding-left: 56px
+
   .UnderlineNav
     padding-left: var(--base-size-16, 1rem)
