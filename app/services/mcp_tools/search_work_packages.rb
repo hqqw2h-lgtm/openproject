@@ -36,7 +36,6 @@ module McpTools
                         "of #{page_size} work packages. To get the rest of the results, call the tool again with a" \
                         "page number of 2 or higher."
 
-
     name "search_work_packages"
     annotations read_only: true, idempotent: true, destructive: false
     enable_pagination
@@ -76,6 +75,7 @@ module McpTools
     )
 
     output_filter McpOutputFilters::RemoveFormattableHtml
+    output_filter McpOutputFilters::RemoveWorkPackageActionLinks
 
     def call(page: nil, **filters)
       filtered = apply_filters(WorkPackage.visible, filters)
