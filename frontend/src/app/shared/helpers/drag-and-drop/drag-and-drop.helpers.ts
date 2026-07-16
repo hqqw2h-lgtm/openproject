@@ -9,11 +9,15 @@ export function findIndex(el:HTMLElement):number {
 
 export function reinsert(el:HTMLElement, previousIndex:number|string, container:HTMLElement) {
   const prev = typeof previousIndex === 'string' ? parseInt(previousIndex, 10) : previousIndex;
-  const currentIndex = el.parentNode ? Array.from(el.parentNode.children).indexOf(el) : null;
   const children = Array.from(container.children);
+  // Only meaningful when `el` still lives in `container` (same-list revert):
+  // a cross-list reject can leave `el` sitting in the target container while
+  // we restore it into the source, in which case its index there says
+  // nothing about where `prev` points inside `container`.
+  const currentIndex = el.parentNode === container ? children.indexOf(el) : -1;
 
   const pointOfInsertion = (() => {
-    if (currentIndex != null && currentIndex >= 0) {
+    if (currentIndex >= 0) {
       const isDraggingDown = currentIndex > prev;
       return isDraggingDown ? children[prev] : children[prev + 1];
     }
