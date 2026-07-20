@@ -26,6 +26,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # See COPYRIGHT and LICENSE files for more details.
+#
+# Modified 2026-07-20 by the hqqw2h-lgtm/openproject fork maintainers:
+# default ee_hide_banners to true for this fork.
+# This modified work remains licensed under the GNU GPL version 3.
 #++
 
 # rubocop:disable Metrics/CollectionLiteralLength
@@ -453,7 +457,7 @@ module Settings
       },
       ee_hide_banners: {
         description: "Hide the Enterprise enterprise banners",
-        default: false
+        default: true
       },
       enable_internal_assets_server: {
         description: "Serve assets through the Rails internal asset server",

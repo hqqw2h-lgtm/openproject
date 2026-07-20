@@ -26,6 +26,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # See COPYRIGHT and LICENSE files for more details.
+#
+# Modified 2026-07-20 by the hqqw2h-lgtm/openproject fork maintainers:
+# unlock Enterprise add-on feature gates and hide upsell banners.
+# This modified work remains licensed under the GNU GPL version 3.
 #++
 class EnterpriseToken < ApplicationRecord
   EXPIRING_SOON_DAYS = 30
@@ -53,36 +57,39 @@ class EnterpriseToken < ApplicationRecord
       connection.data_source_exists? table_name
     end
 
-    def allows_to?(feature)
-      active_tokens.any? { |token| Authorization::EnterpriseService.new(token).call(feature).result }
+    # Fork change (see FORK_NOTICE.md, 2026-07-20): unlock all Enterprise
+    # add-ons under GPLv3 and hide upsell banners without a paid token.
+    def allows_to?(_feature)
+      true
     end
 
     def active?
-      active_tokens.any?
+      true
     end
 
     def trial_only?
-      active_non_trial_tokens.empty? && active_trial_token.present?
+      false
     end
 
     def available_features
-      active_tokens.map(&:available_features).inject(Set.new, :|)
+      OpenProject::Token::FEATURES_PER_PLAN[:corporate] ||
+        OpenProject::Token::FEATURES_PER_PLAN.values.reduce(Set.new, :|)
     end
 
     def non_trialling_features
-      active_non_trial_tokens.map(&:available_features).inject(Set.new, :|)
+      available_features
     end
 
     def trialling_features
-      available_features - non_trialling_features
+      Set.new
     end
 
-    def trialling?(feature)
-      trialling_features.include?(feature)
+    def trialling?(_feature)
+      false
     end
 
     def hide_banners?
-      OpenProject::Configuration.ee_hide_banners?
+      true
     end
 
     def user_limit
