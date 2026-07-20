@@ -53,36 +53,39 @@ class EnterpriseToken < ApplicationRecord
       connection.data_source_exists? table_name
     end
 
-    def allows_to?(feature)
-      active_tokens.any? { |token| Authorization::EnterpriseService.new(token).call(feature).result }
+    # Fork change: unlock all Enterprise add-ons (GPLv3) and hide upsell banners.
+    # Features remain available without requiring a paid Enterprise token.
+    def allows_to?(_feature)
+      true
     end
 
     def active?
-      active_tokens.any?
+      true
     end
 
     def trial_only?
-      active_non_trial_tokens.empty? && active_trial_token.present?
+      false
     end
 
     def available_features
-      active_tokens.map(&:available_features).inject(Set.new, :|)
+      OpenProject::Token::FEATURES_PER_PLAN[:corporate] ||
+        OpenProject::Token::FEATURES_PER_PLAN.values.reduce(Set.new, :|)
     end
 
     def non_trialling_features
-      active_non_trial_tokens.map(&:available_features).inject(Set.new, :|)
+      available_features
     end
 
     def trialling_features
-      available_features - non_trialling_features
+      Set.new
     end
 
-    def trialling?(feature)
-      trialling_features.include?(feature)
+    def trialling?(_feature)
+      false
     end
 
     def hide_banners?
-      OpenProject::Configuration.ee_hide_banners?
+      true
     end
 
     def user_limit

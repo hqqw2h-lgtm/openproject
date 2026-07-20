@@ -453,7 +453,7 @@ module Settings
       },
       ee_hide_banners: {
         description: "Hide the Enterprise enterprise banners",
-        default: false
+        default: true
       },
       enable_internal_assets_server: {
         description: "Serve assets through the Rails internal asset server",
