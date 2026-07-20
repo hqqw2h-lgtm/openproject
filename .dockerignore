@@ -9,6 +9,7 @@
 *.swp
 .*ignore
 *.md
+!FORK_NOTICE.md
 *.log
 config/database.yml
 docker/prod/Dockerfile
