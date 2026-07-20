@@ -26,6 +26,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # See COPYRIGHT and LICENSE files for more details.
+#
+# Modified 2026-07-20 by the hqqw2h-lgtm/openproject fork maintainers:
+# unlock Enterprise add-on feature gates and hide upsell banners.
+# This modified work remains licensed under the GNU GPL version 3.
 #++
 class EnterpriseToken < ApplicationRecord
   EXPIRING_SOON_DAYS = 30
@@ -53,8 +57,8 @@ class EnterpriseToken < ApplicationRecord
       connection.data_source_exists? table_name
     end
 
-    # Fork change: unlock all Enterprise add-ons (GPLv3) and hide upsell banners.
-    # Features remain available without requiring a paid Enterprise token.
+    # Fork change (see FORK_NOTICE.md, 2026-07-20): unlock all Enterprise
+    # add-ons under GPLv3 and hide upsell banners without a paid token.
     def allows_to?(_feature)
       true
     end
