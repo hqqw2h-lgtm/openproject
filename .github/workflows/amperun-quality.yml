@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        # ubuntu-latest currently ships pg_dump 16, which db:prepare invokes.
+        # ubuntu-latest ships pg_dump 16, which Rails invokes after migrations.
         image: postgres:16
         env:
           POSTGRES_USER: openproject
