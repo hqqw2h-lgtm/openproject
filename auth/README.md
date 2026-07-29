@@ -147,11 +147,13 @@ IP、数据库备份、审计告警和独立紧急管理员入口。同机反向
 
 ```bash
 make -C auth test
+make -C auth coverage
 make -C auth config
 make -C auth smoke
 ```
 
-`test` 验证 Bridge 和跨目录契约；`config` 验证合并后的 Compose；`smoke` 在运行栈上验证
+`test` 验证 Bridge 和跨目录契约；`coverage` 对 Bridge `src` 的每个文件及整体汇总分别强制
+行、分支和函数覆盖率均不低于 95%；`config` 验证合并后的 Compose；`smoke` 在运行栈上验证
 OIDC 重定向、Keycloak issuer、OpenProject Provider metadata、协作编辑路由和网络边界。
 
 GitLab 尚未加入这个本地 Compose。接入时应在同一 Realm 新建独立 `gitlab` Client，使用

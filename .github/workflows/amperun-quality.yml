@@ -1,0 +1,116 @@
+name: Amperun quality
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+      - integrate/**
+    paths:
+      - '.github/workflows/amperun-quality.yml'
+      - 'app/models/enterprise_token.rb'
+      - 'auth/**'
+      - 'config/constants/settings/definition.rb'
+      - 'docker/poc/wecom-sso/**'
+      - 'docker/prod/Dockerfile'
+      - 'spec/models/enterprise_token_spec.rb'
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - '.github/workflows/amperun-quality.yml'
+      - 'app/models/enterprise_token.rb'
+      - 'auth/**'
+      - 'config/constants/settings/definition.rb'
+      - 'docker/poc/wecom-sso/**'
+      - 'docker/prod/Dockerfile'
+      - 'spec/models/enterprise_token_spec.rb'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rails-target:
+    name: EnterpriseToken target spec
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: openproject
+          POSTGRES_PASSWORD: openproject-test-only
+          POSTGRES_DB: openproject_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U openproject -d openproject_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      BUNDLE_WITHOUT: development
+      DATABASE_URL: postgresql://openproject:openproject-test-only@127.0.0.1:5432/openproject_test
+      RAILS_ENV: test
+      SECRET_KEY_BASE: amperun-test-only-secret-key-base-amperun-test-only-secret-key-base
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@12fd324f1d0b43274fdc8130f6980590a667c455 # v1
+        with:
+          bundler-cache: true
+      - name: Configure test database
+        run: cp config/database.yml.example config/database.yml
+      - name: Prepare test database
+        run: bundle exec rails db:prepare
+      - name: Run EnterpriseToken model specs
+        run: bundle exec rspec spec/models/enterprise_token_spec.rb
+
+  bridge:
+    name: Bridge tests and 95% coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.2.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+      - name: Install Bridge dependencies
+        working-directory: auth/bridge
+        run: npm ci
+      - name: Run Bridge and cross-directory tests
+        working-directory: auth/bridge
+        env:
+          DOCKER_COMPOSE_COMMAND: docker compose
+        run: npm test
+      - name: Run tests and enforce coverage
+        working-directory: auth/bridge
+        run: npm run test:coverage
+
+  deployment-contracts:
+    name: Deployment contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Validate Ruby integration contracts
+        run: ruby docker/poc/wecom-sso/test/integration_contract_test.rb
+      - name: Validate Compose configuration
+        env:
+          OPENPROJECT_SOURCE_DIR: ${{ github.workspace }}
+        run: >-
+          docker compose
+          --env-file auth/.env.example
+          -p amperun-sso-contract
+          -f auth/docker-compose.yml
+          -f docker/poc/wecom-sso/docker-compose.yml
+          config --quiet

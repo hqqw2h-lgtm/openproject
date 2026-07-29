@@ -6,9 +6,10 @@ AUTH_COMPOSE := $(AUTH_DIR)/docker-compose.yml
 OPENPROJECT_DIR ?= $(WORKSPACE_DIR)
 OPENPROJECT_COMPOSE := $(OPENPROJECT_DIR)/docker/poc/wecom-sso/docker-compose.yml
 PROJECT_NAME ?= amperun-sso-fork
-COMPOSE := env OPENPROJECT_SOURCE_DIR=$(OPENPROJECT_DIR) docker-compose --env-file $(ENV_FILE) -p $(PROJECT_NAME) -f $(AUTH_COMPOSE) -f $(OPENPROJECT_COMPOSE)
+COMPOSE_COMMAND ?= $(shell command -v docker-compose >/dev/null 2>&1 && echo docker-compose || echo 'docker compose')
+COMPOSE := env OPENPROJECT_SOURCE_DIR=$(OPENPROJECT_DIR) $(COMPOSE_COMMAND) --env-file $(ENV_FILE) -p $(PROJECT_NAME) -f $(AUTH_COMPOSE) -f $(OPENPROJECT_COMPOSE)
 
-.PHONY: up wait down destroy reset status logs deps test smoke config
+.PHONY: up wait down destroy reset status logs deps test coverage smoke config
 
 $(ENV_FILE):
 	cp $(AUTH_DIR)/.env.example $(ENV_FILE)
@@ -39,6 +40,9 @@ deps:
 
 test: deps
 	cd $(AUTH_DIR)/bridge && npm test
+
+coverage: deps
+	cd $(AUTH_DIR)/bridge && npm run test:coverage
 
 smoke: $(ENV_FILE)
 	STACK_COMPOSE_PROJECT=$(PROJECT_NAME) node $(AUTH_DIR)/bridge/scripts/runtime-smoke.mjs

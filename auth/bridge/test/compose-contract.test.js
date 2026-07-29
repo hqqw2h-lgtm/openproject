@@ -13,6 +13,13 @@ const openProjectRoot = path.resolve(
 );
 const execFileAsync = promisify(execFile);
 
+function dockerComposeArgs(args) {
+  const [command, ...prefixArgs] = (process.env.DOCKER_COMPOSE_COMMAND || 'docker-compose')
+    .trim()
+    .split(/\s+/);
+  return { command, args: [...prefixArgs, ...args] };
+}
+
 test('auth compose exposes stable browser-and-container hostnames', async () => {
   const compose = await readFile(path.join(workspaceRoot, 'auth', 'docker-compose.yml'), 'utf8');
   const caddyfile = await readFile(path.join(workspaceRoot, 'auth', 'proxy', 'Caddyfile'), 'utf8');
@@ -201,14 +208,15 @@ test('native OpenProject OIDC shares only its private IdP network with Keycloak'
     'wecom-sso',
     'docker-compose.yml',
   );
-  const { stdout } = await execFileAsync('docker-compose', [
+  const invocation = dockerComposeArgs([
     '--env-file', path.join(workspaceRoot, 'auth', '.env.example'),
     '-p', 'amperun-sso-contract',
     '-f', authCompose,
     '-f', openProjectCompose,
     'config',
     '--format', 'json',
-  ], {
+  ]);
+  const { stdout } = await execFileAsync(invocation.command, invocation.args, {
     env: { ...process.env, OPENPROJECT_SOURCE_DIR: openProjectRoot },
   });
   const config = JSON.parse(stdout);
@@ -273,6 +281,7 @@ test('Makefile defines non-destructive stop and volume-removing destroy targets'
   assert.match(makefile, /^test: deps$/m);
   assert.match(makefile, /OPENPROJECT_DIR \?= \$\(WORKSPACE_DIR\)/);
   assert.match(makefile, /PROJECT_NAME \?= amperun-sso-fork/);
+  assert.match(makefile, /COMPOSE_COMMAND \?=.*command -v docker-compose/);
   assert.match(makefile, /OPENPROJECT_SOURCE_DIR=\$\(OPENPROJECT_DIR\)/);
   assert.match(makefile, /STACK_COMPOSE_PROJECT=\$\(PROJECT_NAME\).*network-smoke\.mjs/);
   assert.match(makefile, /up -d --build --wait --wait-timeout 300/);

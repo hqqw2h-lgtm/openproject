@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -6,6 +9,7 @@ import {
   IdentityRegistry,
   InactiveAccountError,
   InvalidAccountError,
+  JsonFileIdentityRegistry,
   UnauthorizedAccountError,
   normalizeWeComAccount,
 } from '../src/accounts.js';
@@ -107,4 +111,79 @@ test('preferred usernames do not collide after normalization', () => {
   const second = normalizeWeComAccount(rawAccount({ personId: 'person-two', userId: 'alice-corp' }));
 
   assert.notEqual(first.preferred_username, second.preferred_username);
+});
+
+test('rejects malformed account fields and identity remapping attempts', () => {
+  assert.throws(
+    () => normalizeWeComAccount(rawAccount({ email: 'not-an-email' })),
+    /email is invalid/,
+  );
+
+  const registry = new IdentityRegistry({ 'ww-one:alice': 'person-one' });
+  assert.throws(
+    () => registry.resolve('ww-one', 'alice', 'person-two'),
+    /already linked/,
+  );
+  assert.throws(
+    () => registry.linkAlias('ww-one', 'missing', 'alias'),
+    /Unknown external identity/,
+  );
+
+  registry.resolve('ww-one', 'bob', 'person-two');
+  assert.throws(
+    () => registry.linkAlias('ww-one', 'alice', 'bob'),
+    /Alias .* is already linked/,
+  );
+});
+
+test('persists and reloads stable identity mappings atomically', (t) => {
+  const directoryPath = mkdtempSync(path.join(tmpdir(), 'amperun-identities-'));
+  const registryPath = path.join(directoryPath, 'nested', 'registry.json');
+  t.after(() => rmSync(directoryPath, { recursive: true, force: true }));
+
+  const registry = new JsonFileIdentityRegistry(registryPath);
+  const personId = registry.resolve('ww-one', 'Alice', 'person-one');
+  registry.linkAlias('ww-one', 'alice', 'alice.new');
+
+  assert.equal(personId, 'person-one');
+  assert.deepEqual(JSON.parse(readFileSync(registryPath, 'utf8')), {
+    version: 1,
+    externalToPersonId: {
+      'ww-one:alice': 'person-one',
+      'ww-one:alice.new': 'person-one',
+    },
+  });
+
+  const reloaded = new JsonFileIdentityRegistry(registryPath);
+  assert.equal(reloaded.resolve('ww-one', 'ALICE'), 'person-one');
+  assert.deepEqual(reloaded.aliasesFor('person-one').sort(), [
+    'ww-one:alice',
+    'ww-one:alice.new',
+  ]);
+});
+
+test('rejects unsupported identity registry data', (t) => {
+  const directoryPath = mkdtempSync(path.join(tmpdir(), 'amperun-identities-'));
+  const registryPath = path.join(directoryPath, 'registry.json');
+  t.after(() => rmSync(directoryPath, { recursive: true, force: true }));
+
+  writeFileSync(registryPath, JSON.stringify({ version: 2, externalToPersonId: {} }));
+  assert.throws(() => new JsonFileIdentityRegistry(registryPath), /Unsupported identity registry format/);
+
+  writeFileSync(registryPath, '{invalid-json');
+  assert.throws(() => new JsonFileIdentityRegistry(registryPath), SyntaxError);
+});
+
+test('normalizes single names and department slugs without duplicate groups', () => {
+  const account = normalizeWeComAccount(rawAccount({
+    name: 'Alice',
+    departmentNames: ['Engineering Team', 'Engineering Team', '!!!'],
+  }));
+
+  assert.equal(account.family_name, 'Alice');
+  assert.deepEqual(account.groups, [
+    '/apps/openproject/users',
+    '/departments/engineering-team',
+    '/departments/wecom',
+  ]);
 });

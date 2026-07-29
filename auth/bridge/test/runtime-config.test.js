@@ -62,3 +62,41 @@ test('real WeCom mode rejects HTTP endpoints and local placeholder secrets', () 
     /WECOM_APP_SECRET must not use a local placeholder/,
   );
 });
+
+test('rejects unsupported modes, styles, invalid URLs, and empty allowlists', () => {
+  assert.throws(
+    () => loadRuntimeConfig({ WECOM_MODE: 'saml' }),
+    /Unsupported WECOM_MODE/,
+  );
+  assert.throws(
+    () => loadRuntimeConfig({ WECOM_AUTH_STYLE: 'popup' }),
+    /Unsupported WECOM_AUTH_STYLE/,
+  );
+  assert.throws(
+    () => loadRuntimeConfig({ ...realEnvironment, BRIDGE_ISSUER: 'not a url' }),
+    /BRIDGE_ISSUER must be a valid URL/,
+  );
+  assert.throws(
+    () => loadRuntimeConfig({ ...realEnvironment, WECOM_ALLOWED_USER_IDS: ' , ' }),
+    /must contain at least one user/,
+  );
+});
+
+test('loads mock defaults and normalizes optional runtime settings', () => {
+  const config = loadRuntimeConfig({
+    BRIDGE_COOKIE_KEYS: ' first-key, second-key, ',
+    BRIDGE_ISSUER: 'http://bridge.test/',
+    IDENTITY_REGISTRY_PATH: '/tmp/identities.json',
+    PORT: '4312',
+    WECOM_ALLOWED_USER_IDS: ' Alice,BOB, ',
+  });
+
+  assert.equal(config.mode, 'mock');
+  assert.equal(config.authStyle, 'qr');
+  assert.equal(config.issuer, 'http://bridge.test');
+  assert.equal(config.callbackUrl, 'http://bridge.test/wecom/callback');
+  assert.equal(config.port, 4312);
+  assert.equal(config.identityRegistryPath, '/tmp/identities.json');
+  assert.deepEqual(config.cookieKeys, ['first-key', 'second-key']);
+  assert.deepEqual([...config.allowedUserIds], ['alice', 'bob']);
+});
