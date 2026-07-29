@@ -67,7 +67,7 @@ jobs:
       - name: Configure test database
         run: cp config/database.yml.example config/database.yml
       - name: Prepare test database
-        run: bundle exec rails db:prepare
+        run: bundle exec rails db:migrate
       - name: Run EnterpriseToken model specs
         run: bundle exec rspec spec/models/enterprise_token_spec.rb
 
