@@ -39,7 +39,8 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:17
+        # ubuntu-latest currently ships pg_dump 16, which db:prepare invokes.
+        image: postgres:16
         env:
           POSTGRES_USER: openproject
           POSTGRES_PASSWORD: openproject-test-only
