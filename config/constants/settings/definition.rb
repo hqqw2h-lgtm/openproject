@@ -27,8 +27,8 @@
 #
 # See COPYRIGHT and LICENSE files for more details.
 #
-# Modified 2026-07-20 by the hqqw2h-lgtm/openproject fork maintainers:
-# default ee_hide_banners to true for this fork.
+# Modified by the hqqw2h-lgtm/openproject fork maintainers:
+# add an explicit, image-controlled Enterprise feature unlock setting.
 # This modified work remains licensed under the GNU GPL version 3.
 #++
 
@@ -457,7 +457,12 @@ module Settings
       },
       ee_hide_banners: {
         description: "Hide the Enterprise enterprise banners",
-        default: true
+        default: false
+      },
+      enterprise_features_unlocked: {
+        description: "Enable all GPLv3 Enterprise add-on features without a token",
+        default: false,
+        writable: false
       },
       enable_internal_assets_server: {
         description: "Serve assets through the Rails internal asset server",

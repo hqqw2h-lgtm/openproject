@@ -1,0 +1,43 @@
+:8090 {
+	@health path /healthz
+	handle @health {
+		rewrite * /health_checks/default
+		reverse_proxy op-web:8080 {
+			header_up -X-OpenProject-User
+		}
+	}
+
+	@bridge host {$BRIDGE_PUBLIC_HOST}
+	handle @bridge {
+		reverse_proxy bridge:3000
+	}
+
+	@keycloak host {$KEYCLOAK_PUBLIC_HOST}
+	handle @keycloak {
+		reverse_proxy keycloak:8080
+	}
+
+	@openprojectCollaboration {
+		host {$OPENPROJECT_GATEWAY_HOST}
+		path /hocuspocus*
+	}
+	handle @openprojectCollaboration {
+		reverse_proxy hocuspocus:1234
+	}
+
+	@openproject host {$OPENPROJECT_GATEWAY_HOST}
+	handle @openproject {
+		reverse_proxy op-web:8080 {
+			header_up -X-OpenProject-User
+		}
+	}
+
+	@openprojectAdmin host {$OPENPROJECT_ADMIN_GATEWAY_HOST}
+	handle @openprojectAdmin {
+		reverse_proxy op-web:8080 {
+			header_up -X-OpenProject-User
+		}
+	}
+
+	respond "Unknown local SSO host" 404
+}

@@ -1,0 +1,98 @@
+{
+  "realm": "amperun",
+  "displayName": "Amperun",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "groups": [
+    {
+      "name": "apps",
+      "subGroups": [
+        {
+          "name": "openproject",
+          "subGroups": [{ "name": "users" }]
+        }
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "wecom",
+      "displayName": "企业微信",
+      "providerId": "oidc",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "authorizationUrl": "http://bridge.localhost:8090/auth",
+        "tokenUrl": "http://bridge.localhost:8090/token",
+        "userInfoUrl": "http://bridge.localhost:8090/userinfo",
+        "logoutUrl": "http://bridge.localhost:8090/session/end",
+        "issuer": "http://bridge.localhost:8090",
+        "validateSignature": "true",
+        "useJwksUrl": "true",
+        "jwksUrl": "http://bridge.localhost:8090/jwks",
+        "clientId": "keycloak-broker",
+        "clientSecret": "local-bridge-secret-change-me",
+        "clientAuthMethod": "client_secret_post",
+        "defaultScope": "openid profile email groups",
+        "syncMode": "FORCE"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "openproject-access",
+      "identityProviderAlias": "wecom",
+      "identityProviderMapper": "oidc-hardcoded-group-idp-mapper",
+      "config": { "group": "/apps/openproject/users" }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "openproject",
+      "name": "OpenProject native OIDC",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "local-openproject-oidc-secret-change-me",
+      "redirectUris": [
+        "http://openproject.localhost:8090/auth/keycloak/callback"
+      ],
+      "webOrigins": ["http://openproject.localhost:8090"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "http://openproject.localhost:8090/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "groups"
+          }
+        }
+      ],
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    }
+  ]
+}

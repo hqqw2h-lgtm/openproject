@@ -1,0 +1,4 @@
+.env
+bridge/node_modules/
+backups/
+npm-debug.log*

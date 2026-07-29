@@ -1,5 +1,11 @@
 $blocknote-max-width: 800px
 
+// Custom elements default to inline, which breaks native caret hit testing for
+// the block-level ProseMirror editor rendered inside this shadow host.
+op-block-note
+  display: block
+  width: 100%
+
 .document-form--long-description
   .ck-content
     min-height: 30vh

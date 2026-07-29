@@ -5,6 +5,7 @@
 .bundle
 .env*
 .buildpacks
+/auth
 .*.yml
 *.swp
 .*ignore
