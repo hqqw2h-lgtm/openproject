@@ -72,7 +72,10 @@ FROM build-base AS app-build
 
 # stuff required for gems
 COPY Gemfile Gemfile.* .ruby-version ./
+COPY docker/prod/setup/validate-source-tree.sh docker/prod/setup/required-module-locales.txt ./docker/prod/setup/
+COPY config/locales ./config/locales
 COPY modules ./modules
+RUN bash ./docker/prod/setup/validate-source-tree.sh --build-context
 # Add vendor for saas-openproject plugins
 COPY vendor ./vendor
 # Add lib in case a plugin tries to load VERSION file under lib

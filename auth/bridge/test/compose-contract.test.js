@@ -277,11 +277,17 @@ test('Makefile defines non-destructive stop and volume-removing destroy targets'
   assert.match(makefile, /^reset: destroy up$/m);
   assert.doesNotMatch(makefile, /^realm-reset:/m);
   assert.match(makefile, /^deps:/m);
+  assert.match(makefile, /^compose-preflight:/m);
+  assert.match(makefile, /^source-preflight:/m);
+  assert.match(makefile, /^up: \$\(ENV_FILE\) compose-preflight source-preflight$/m);
+  assert.match(makefile, /validate-source-tree\.sh/);
   assert.match(makefile, /cd .*\/bridge && npm ci/);
   assert.match(makefile, /^test: deps$/m);
   assert.match(makefile, /OPENPROJECT_DIR \?= \$\(WORKSPACE_DIR\)/);
   assert.match(makefile, /PROJECT_NAME \?= amperun-sso-fork/);
-  assert.match(makefile, /COMPOSE_COMMAND \?=.*command -v docker-compose/);
+  assert.match(makefile, /docker compose version --short/);
+  assert.match(makefile, /docker-compose version --short/);
+  assert.match(makefile, /Docker Compose 2 or newer is required/);
   assert.match(makefile, /OPENPROJECT_SOURCE_DIR=\$\(OPENPROJECT_DIR\)/);
   assert.match(makefile, /STACK_COMPOSE_PROJECT=\$\(PROJECT_NAME\).*network-smoke\.mjs/);
   assert.match(makefile, /up -d --build --wait --wait-timeout 300/);

@@ -18,6 +18,8 @@ Client and prevent deterministic startup.
 Set paths and create a protected backup directory:
 
 ```bash
+set -euo pipefail
+
 export FORK_DIR=/Users/abner/amperun/openproject-hqqw-main
 export LEGACY_DIR=/Users/abner/amperun/openproject
 export LEGACY_AUTH_DIR=/Users/abner/amperun/auth
@@ -25,10 +27,40 @@ export LEGACY_ENV_FILE=$LEGACY_AUTH_DIR/.env
 export FORK_ENV_FILE=$FORK_DIR/auth/.env
 export BACKUP_DIR=$HOME/openproject-backups/openproject-17.6-$(date +%Y%m%d-%H%M%S)
 install -d -m 700 "$BACKUP_DIR"
+
+if docker compose version --short 2>/dev/null | awk -F. '{ sub(/^v/, "", $1); ok = ($1 + 0 >= 2) } END { exit !ok }'; then
+  COMPOSE=(docker compose)
+elif docker-compose version --short 2>/dev/null | awk -F. '{ sub(/^v/, "", $1); ok = ($1 + 0 >= 2) } END { exit !ok }'; then
+  COMPOSE=(docker-compose)
+else
+  echo "Docker Compose 2 or newer is required" >&2
+  exit 1
+fi
+
+LEGACY_COMPOSE=(
+  "${COMPOSE[@]}"
+  --env-file "$LEGACY_ENV_FILE"
+  -p amperun-sso
+  -f "$LEGACY_AUTH_DIR/docker-compose.yml"
+  -f "$LEGACY_DIR/docker/poc/wecom-sso/docker-compose.yml"
+)
 ```
 
-During a maintenance window, export the database and archive state needed for
-rollback. Keep Secret files outside Git:
+Enter a write-free maintenance window before taking any backup. Stop the whole
+old stack without deleting its volumes, then start only PostgreSQL. This keeps
+OpenProject, workers, Hocuspocus, Keycloak, Bridge and LDAP offline while the
+database snapshot, content counts and volume archives are captured:
+
+```bash
+env OPENPROJECT_SOURCE_DIR="$LEGACY_DIR" \
+  "${LEGACY_COMPOSE[@]}" down --remove-orphans
+
+env OPENPROJECT_SOURCE_DIR="$LEGACY_DIR" \
+  "${LEGACY_COMPOSE[@]}" up -d --wait op-db
+```
+
+Export the database and archive state needed for rollback. Keep Secret files
+outside Git:
 
 ```bash
 install -m 600 "$LEGACY_ENV_FILE" "$BACKUP_DIR/legacy.env"
@@ -42,6 +74,16 @@ docker exec -i amperun-sso-op-db-1 \
   < "$BACKUP_DIR/openproject.dump" \
   > "$BACKUP_DIR/database-contents.txt"
 
+docker exec amperun-sso-op-db-1 \
+  psql -U openproject -d openproject -Atc \
+  "SELECT json_build_object(
+     'documents', (SELECT count(*) FROM documents),
+     'wikis', (SELECT count(*) FROM wikis),
+     'wiki_pages', (SELECT count(*) FROM wiki_pages),
+     'attachments', (SELECT count(*) FROM attachments)
+   )::text" \
+  > "$BACKUP_DIR/legacy-content-counts.txt"
+
 for volume in openproject-assets bridge-data directory-config directory-data keycloak-db; do
   docker run --rm \
     -v "amperun-sso_${volume}:/source:ro" \
@@ -52,11 +94,11 @@ for volume in openproject-assets bridge-data directory-config directory-data key
 done
 ```
 
-Stop without deleting the old project:
+Stop the temporary old PostgreSQL service without deleting the old project:
 
 ```bash
-make -C "$LEGACY_AUTH_DIR" PROJECT_NAME=amperun-sso \
-  OPENPROJECT_DIR="$LEGACY_DIR" ENV_FILE="$LEGACY_ENV_FILE" down
+env OPENPROJECT_SOURCE_DIR="$LEGACY_DIR" \
+  "${LEGACY_COMPOSE[@]}" down --remove-orphans
 ```
 
 ## 2. Prepare the new environment
@@ -111,11 +153,16 @@ done
 
 Render the new configuration, start only PostgreSQL, and restore the database:
 
+Do not run `make -C auth ... up` before this `pg_restore`. A normal full-stack
+start creates and seeds an empty target database, which makes historical Wiki
+and Documents content appear to have disappeared even though it remains in the
+legacy volume.
+
 ```bash
 cd "$FORK_DIR"
 make -C auth ENV_FILE="$FORK_ENV_FILE" OPENPROJECT_DIR="$FORK_DIR" config
 
-env OPENPROJECT_SOURCE_DIR="$FORK_DIR" docker-compose \
+env OPENPROJECT_SOURCE_DIR="$FORK_DIR" "${COMPOSE[@]}" \
   --env-file "$FORK_ENV_FILE" -p amperun-sso-fork \
   -f auth/docker-compose.yml \
   -f docker/poc/wecom-sso/docker-compose.yml \
@@ -125,6 +172,22 @@ docker exec -i amperun-sso-fork-op-db-1 \
   pg_restore -U openproject -d openproject --clean --if-exists \
   --exit-on-error --single-transaction \
   < "$BACKUP_DIR/openproject.dump"
+
+RESTORED_CONTENT_COUNTS="$(docker exec amperun-sso-fork-op-db-1 \
+  psql -U openproject -d openproject -Atc \
+  "SELECT json_build_object(
+     'documents', (SELECT count(*) FROM documents),
+     'wikis', (SELECT count(*) FROM wikis),
+     'wiki_pages', (SELECT count(*) FROM wiki_pages),
+     'attachments', (SELECT count(*) FROM attachments)
+   )::text")"
+EXPECTED_CONTENT_COUNTS="$(cat "$BACKUP_DIR/legacy-content-counts.txt")"
+if [ "$EXPECTED_CONTENT_COUNTS" != "$RESTORED_CONTENT_COUNTS" ]; then
+  echo "Content counts differ immediately after pg_restore" >&2
+  echo "expected: $EXPECTED_CONTENT_COUNTS" >&2
+  echo "actual:   $RESTORED_CONTENT_COUNTS" >&2
+  exit 1
+fi
 ```
 
 ## 4. Start and validate 17.8
@@ -134,6 +197,22 @@ make -C auth PROJECT_NAME=amperun-sso-fork \
   OPENPROJECT_DIR="$FORK_DIR" ENV_FILE="$FORK_ENV_FILE" up
 make -C auth PROJECT_NAME=amperun-sso-fork \
   OPENPROJECT_DIR="$FORK_DIR" ENV_FILE="$FORK_ENV_FILE" smoke
+
+MIGRATED_CONTENT_COUNTS="$(docker exec amperun-sso-fork-op-db-1 \
+  psql -U openproject -d openproject -Atc \
+  "SELECT json_build_object(
+     'documents', (SELECT count(*) FROM documents),
+     'wikis', (SELECT count(*) FROM wikis),
+     'wiki_pages', (SELECT count(*) FROM wiki_pages),
+     'attachments', (SELECT count(*) FROM attachments)
+   )::text")"
+EXPECTED_CONTENT_COUNTS="$(cat "$BACKUP_DIR/legacy-content-counts.txt")"
+if [ "$EXPECTED_CONTENT_COUNTS" != "$MIGRATED_CONTENT_COUNTS" ]; then
+  echo "Content counts differ after OpenProject 17.8 migrations" >&2
+  echo "expected: $EXPECTED_CONTENT_COUNTS" >&2
+  echo "actual:   $MIGRATED_CONTENT_COUNTS" >&2
+  exit 1
+fi
 ```
 
 Validate with a copied database before production cutover:
@@ -160,8 +239,9 @@ Stop only the new project and restart the untouched old project:
 ```bash
 make -C "$FORK_DIR/auth" PROJECT_NAME=amperun-sso-fork \
   OPENPROJECT_DIR="$FORK_DIR" ENV_FILE="$FORK_ENV_FILE" down
-make -C "$LEGACY_AUTH_DIR" PROJECT_NAME=amperun-sso \
-  OPENPROJECT_DIR="$LEGACY_DIR" ENV_FILE="$LEGACY_ENV_FILE" up
+env OPENPROJECT_SOURCE_DIR="$LEGACY_DIR" \
+  "${LEGACY_COMPOSE[@]}" up -d --build --wait --wait-timeout 300
+node "$LEGACY_AUTH_DIR/bridge/scripts/wait-for-stack.mjs"
 ```
 
 Never point 17.6 at the migrated 17.8 database. Retain the backup and old

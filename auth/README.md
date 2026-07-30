@@ -24,7 +24,7 @@ Bridge 把企业微信身份转换成标准 OIDC；Keycloak 作为统一身份�
 
 ## 本地启动
 
-需要 Docker Desktop、`docker-compose`、Node.js 22+。在仓库根目录执行：
+需要 Docker Desktop、Docker Compose 2+、Node.js 22+。在仓库根目录执行：
 
 ```bash
 cp auth/.env.example auth/.env
@@ -32,6 +32,10 @@ make -C auth test
 make -C auth config
 make -C auth up
 ```
+
+`make up` 会先校验主应用和各模块所需的英文回退、简体中文翻译文件。partial clone/sparse
+checkout 如果缺少这些 locale，构建会停止并给出补齐命令，避免中英文界面出现
+`Translation missing`。也可单独执行 `make -C auth source-preflight`。
 
 默认 `WECOM_MODE=mock`，无需真实企业微信 Secret。服务入口：
 

@@ -17,6 +17,7 @@ Use the root authentication Makefile instead of invoking this file alone:
 cp auth/.env.example auth/.env
 make -C auth test
 make -C auth config
+make -C auth source-preflight
 make -C auth up
 make -C auth smoke
 ```
@@ -30,6 +31,10 @@ The native provider is seeded from `OPENPROJECT_OPENID__CONNECT_KEYCLOAK_*`
 variables. Browser authorization and logout use the public Keycloak issuer;
 server-side token, userinfo and JWKS requests use the private
 `openproject-idp-backplane` network.
+
+The source preflight verifies that sparse checkouts contain the required core
+and module English fallback and Simplified Chinese locale catalogs before
+Docker builds assets. The Dockerfile repeats the check inside the build context.
 
 Local endpoints:
 

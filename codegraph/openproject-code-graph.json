@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "hqqw2h-lgtm/openproject",
-  "base_commit": "47a200c260a8583596f35f7f45b2d8d97960a999",
+  "base_commit": "1a44df2d8d7043312e8a369d54cd00ef80fdebed",
   "source_tree_sha256": "8bac65e0ebddb6b7e363137b6ca0ce7c4d9e03a05c0c8dc19c8ecd311fbbf975",
   "openproject_version": "17.8.0",
   "scope": {
