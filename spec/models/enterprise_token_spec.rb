@@ -33,6 +33,45 @@ require "spec_helper"
 RSpec.describe EnterpriseToken do
   include EnterpriseTokenFactory
 
+  describe ".enterprise feature unlock" do
+    context "when enterprise features are unlocked",
+            with_config: {
+              enterprise_features_unlocked: true,
+              ee_hide_banners: false
+            } do
+      before do
+        create_enterprise_token("limited_token", restrictions: { active_user_count: 5 })
+      end
+
+      it "enables all corporate features without a token" do
+        expect(described_class.active?).to be(true)
+        expect(described_class.allows_to?(:sso_auth_providers)).to be(true)
+        expect(described_class.available_features)
+          .to match_array(OpenProject::Token::FEATURES_PER_PLAN.fetch(:corporate))
+        expect(described_class.non_trialling_features).to eq(described_class.available_features)
+        expect(described_class.trialling_features).to be_empty
+        expect(described_class.trialling?(:sso_auth_providers)).to be(false)
+        expect(described_class.trial_only?).to be(false)
+        expect(described_class.hide_banners?).to be(true)
+        expect(described_class.user_limit).to be_nil
+      end
+    end
+
+    context "when enterprise features are not unlocked",
+            with_config: {
+              enterprise_features_unlocked: false,
+              ee_hide_banners: false
+            } do
+      it "keeps the token-backed authorization behavior" do
+        expect(described_class.active?).to be(false)
+        expect(described_class.allows_to?(:sso_auth_providers)).to be(false)
+        expect(described_class.available_features).to be_empty
+        expect(described_class.hide_banners?).to be(false)
+      end
+    end
+
+  end
+
   describe ".active?" do
     context "without any tokens" do
       it "returns false" do

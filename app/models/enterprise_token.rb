@@ -27,8 +27,8 @@
 #
 # See COPYRIGHT and LICENSE files for more details.
 #
-# Modified 2026-07-20 by the hqqw2h-lgtm/openproject fork maintainers:
-# unlock Enterprise add-on feature gates and hide upsell banners.
+# Modified by the hqqw2h-lgtm/openproject fork maintainers:
+# support an explicit Enterprise add-on feature unlock mode.
 # This modified work remains licensed under the GNU GPL version 3.
 #++
 class EnterpriseToken < ApplicationRecord
@@ -57,42 +57,61 @@ class EnterpriseToken < ApplicationRecord
       connection.data_source_exists? table_name
     end
 
-    # Fork change (see FORK_NOTICE.md, 2026-07-20): unlock all Enterprise
-    # add-ons under GPLv3 and hide upsell banners without a paid token.
-    def allows_to?(_feature)
-      true
+    # Fork change (see FORK_NOTICE.md): the custom image enables all GPLv3
+    # Enterprise add-ons without changing token behavior for source checkouts.
+    def allows_to?(feature)
+      return true if enterprise_features_unlocked?
+
+      active_tokens.any? { |token| Authorization::EnterpriseService.new(token).call(feature).result }
     end
 
     def active?
-      true
+      enterprise_features_unlocked? || active_tokens.any?
     end
 
     def trial_only?
-      false
+      return false if enterprise_features_unlocked?
+
+      active_non_trial_tokens.empty? && active_trial_token.present?
     end
 
     def available_features
-      OpenProject::Token::FEATURES_PER_PLAN[:corporate] ||
-        OpenProject::Token::FEATURES_PER_PLAN.values.reduce(Set.new, :|)
+      features =
+        if enterprise_features_unlocked?
+          OpenProject::Token::FEATURES_PER_PLAN[:corporate] ||
+            OpenProject::Token::FEATURES_PER_PLAN.values.reduce(Set.new, :|)
+        else
+          active_tokens.map(&:available_features).inject(Set.new, :|)
+        end
+
+      features
     end
 
     def non_trialling_features
-      available_features
+      return available_features if enterprise_features_unlocked?
+
+      active_non_trial_tokens.map(&:available_features).inject(Set.new, :|)
     end
 
     def trialling_features
-      Set.new
+      return Set.new if enterprise_features_unlocked?
+
+      available_features - non_trialling_features
     end
 
-    def trialling?(_feature)
-      false
+    def trialling?(feature)
+      return false if enterprise_features_unlocked?
+
+      trialling_features.include?(feature)
     end
 
     def hide_banners?
-      true
+      enterprise_features_unlocked? || OpenProject::Configuration.ee_hide_banners?
     end
 
     def user_limit
+      return nil if enterprise_features_unlocked?
+
       if active_non_trial_tokens.any?
         get_user_limit_of(active_non_trial_tokens)
       elsif active_trial_token
@@ -120,6 +139,11 @@ class EnterpriseToken < ApplicationRecord
         .map(&:max_active_users)
         .max
     end
+
+    def enterprise_features_unlocked?
+      OpenProject::Configuration.enterprise_features_unlocked?
+    end
+
   end
 
   FAR_FUTURE_DATE = Date.new(9999, 1, 1)

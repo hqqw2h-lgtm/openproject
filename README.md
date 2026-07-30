@@ -11,6 +11,14 @@ Manage projects, portfolios, products, tasks, bugs, agile workflows, roadmaps, a
 
 OpenProject is trusted by organizations worldwide, including enterprises, public institutions, and highly regulated industries.
 
+## Fork integration
+
+This fork adds an explicit `slim-unlocked` image target and the Amperun WeCom
+identity, Wiki, Documents, and collaborative-editing PoC. Start with
+[`auth/README.md`](auth/README.md), review the deployment overlay under
+[`docker/poc/wecom-sso/`](docker/poc/wecom-sso/), and read
+[`FORK_NOTICE.md`](FORK_NOTICE.md) before distributing a modified image.
+
 ![Screenshot of OpenProject, showing the GitHub tab on a work package](GitHub-tab-new.png)
 
 **OpenProject's key features include:**

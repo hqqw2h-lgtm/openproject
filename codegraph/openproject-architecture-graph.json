@@ -1,0 +1,393 @@
+{
+  "direction": "LR",
+  "nodes": [
+    {
+      "id": "browser",
+      "label": "Browser clients",
+      "group": "Clients",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "api_clients",
+      "label": "API / integration clients",
+      "group": "Clients",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "hotwire",
+      "label": "Turbo + server-rendered UI\n472 views",
+      "group": "Frontend",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;",
+      "width": 190,
+      "height": 60
+    },
+    {
+      "id": "angular",
+      "label": "Angular feature UI\n1543 files",
+      "group": "Frontend",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;",
+      "width": 190,
+      "height": 60
+    },
+    {
+      "id": "stimulus",
+      "label": "Stimulus controllers\n239 files",
+      "group": "Frontend",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;",
+      "width": 190,
+      "height": 60
+    },
+    {
+      "id": "react",
+      "label": "React islands\n11 files",
+      "group": "Frontend",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;",
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "routes",
+      "label": "Rails routes + middleware",
+      "group": "Rails core",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "width": 190,
+      "height": 60
+    },
+    {
+      "id": "controllers",
+      "label": "Controllers\n224 files",
+      "group": "Rails core",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "api_v3",
+      "label": "Grape API v3\n440 files",
+      "group": "Rails core",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "components",
+      "label": "ViewComponents\n985 files",
+      "group": "Rails core",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "services",
+      "label": "Services\n441 files",
+      "group": "Domain",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "contracts",
+      "label": "Contracts + forms\n354 files",
+      "group": "Domain",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;",
+      "width": 190,
+      "height": 60
+    },
+    {
+      "id": "models",
+      "label": "ActiveRecord models\n978 files",
+      "group": "Domain",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;",
+      "width": 190,
+      "height": 60
+    },
+    {
+      "id": "queries",
+      "label": "Queries\n434 files",
+      "group": "Domain",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "workers",
+      "label": "GoodJob workers\n90 files",
+      "group": "Async",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "plugin_runtime",
+      "label": "Rails engine plugin runtime",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 190,
+      "height": 60
+    },
+    {
+      "id": "hocuspocus_ext",
+      "label": "BlockNote Hocuspocus\n12 files",
+      "group": "Collaborative editing",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 210,
+      "height": 60
+    },
+    {
+      "id": "postgres",
+      "label": "PostgreSQL 17\napplication + GoodJob data",
+      "group": "Data services",
+      "style": "shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#fff2cc;strokeColor=#d6b656;",
+      "width": 210,
+      "height": 60
+    },
+    {
+      "id": "memcached",
+      "label": "Memcached\nRails cache",
+      "group": "Data services",
+      "style": "shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#fff2cc;strokeColor=#d6b656;",
+      "width": 170,
+      "height": 60
+    },
+    {
+      "id": "file_storage",
+      "label": "Attachment storage\nlocal or object storage",
+      "group": "Data services",
+      "style": "shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#fff2cc;strokeColor=#d6b656;",
+      "width": 210,
+      "height": 60
+    },
+    {
+      "id": "module_group_identity_access",
+      "label": "Identity & access\nauth, SAML, OIDC, LDAP, 2FA, reCAPTCHA\n7 modules / 318 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    },
+    {
+      "id": "module_group_planning",
+      "label": "Planning\nbacklogs, boards, calendar, gantt, resources, team planner\n6 modules / 528 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    },
+    {
+      "id": "module_group_collaboration",
+      "label": "Collaboration\ndocuments, meetings, storage, wikis\n4 modules / 1307 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    },
+    {
+      "id": "module_group_finance_reporting",
+      "label": "Finance & reporting\nbudgets, costs, reporting, XLS\n4 modules / 459 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    },
+    {
+      "id": "module_group_integrations",
+      "label": "Integrations\nGitHub, GitLab, webhooks\n3 modules / 213 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    },
+    {
+      "id": "module_group_workspace",
+      "label": "Workspace UI\ngrids, my page, overviews\n3 modules / 154 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    },
+    {
+      "id": "module_group_platform",
+      "label": "Platform UI\navatars, job status\n2 modules / 44 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    },
+    {
+      "id": "module_group_bim",
+      "label": "BIM / BCF\n1 modules / 155 files",
+      "group": "Plugin modules",
+      "style": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;",
+      "width": 260,
+      "height": 100
+    }
+  ],
+  "edges": [
+    {
+      "source": "browser",
+      "target": "routes",
+      "label": "HTTPS"
+    },
+    {
+      "source": "api_clients",
+      "target": "api_v3",
+      "label": "REST / HAL+JSON"
+    },
+    {
+      "source": "routes",
+      "target": "controllers",
+      "label": "dispatch"
+    },
+    {
+      "source": "routes",
+      "target": "api_v3",
+      "label": "/api/v3"
+    },
+    {
+      "source": "controllers",
+      "target": "hotwire",
+      "label": "HTML / Turbo"
+    },
+    {
+      "source": "controllers",
+      "target": "components",
+      "label": "render"
+    },
+    {
+      "source": "hotwire",
+      "target": "stimulus",
+      "label": "enhance"
+    },
+    {
+      "source": "hotwire",
+      "target": "angular",
+      "label": "custom elements"
+    },
+    {
+      "source": "hotwire",
+      "target": "react",
+      "label": "React islands"
+    },
+    {
+      "source": "angular",
+      "target": "api_v3",
+      "label": "API v3"
+    },
+    {
+      "source": "stimulus",
+      "target": "controllers",
+      "label": "Turbo requests"
+    },
+    {
+      "source": "controllers",
+      "target": "services",
+      "label": "commands"
+    },
+    {
+      "source": "api_v3",
+      "target": "services",
+      "label": "endpoints"
+    },
+    {
+      "source": "services",
+      "target": "contracts",
+      "label": "validate"
+    },
+    {
+      "source": "services",
+      "target": "models",
+      "label": "write"
+    },
+    {
+      "source": "queries",
+      "target": "models",
+      "label": "read"
+    },
+    {
+      "source": "controllers",
+      "target": "queries",
+      "label": "read"
+    },
+    {
+      "source": "services",
+      "target": "workers",
+      "label": "enqueue"
+    },
+    {
+      "source": "workers",
+      "target": "services",
+      "label": "execute"
+    },
+    {
+      "source": "models",
+      "target": "postgres",
+      "label": "ActiveRecord"
+    },
+    {
+      "source": "workers",
+      "target": "postgres",
+      "label": "GoodJob"
+    },
+    {
+      "source": "controllers",
+      "target": "memcached",
+      "label": "cache"
+    },
+    {
+      "source": "services",
+      "target": "file_storage",
+      "label": "attachments"
+    },
+    {
+      "source": "angular",
+      "target": "hocuspocus_ext",
+      "label": "collaborative editing"
+    },
+    {
+      "source": "plugin_runtime",
+      "target": "routes",
+      "label": "registers routes"
+    },
+    {
+      "source": "plugin_runtime",
+      "target": "services",
+      "label": "extends core"
+    },
+    {
+      "source": "module_group_bim",
+      "target": "plugin_runtime"
+    },
+    {
+      "source": "module_group_collaboration",
+      "target": "plugin_runtime"
+    },
+    {
+      "source": "module_group_finance_reporting",
+      "target": "plugin_runtime"
+    },
+    {
+      "source": "module_group_identity_access",
+      "target": "plugin_runtime"
+    },
+    {
+      "source": "module_group_integrations",
+      "target": "plugin_runtime"
+    },
+    {
+      "source": "module_group_planning",
+      "target": "plugin_runtime"
+    },
+    {
+      "source": "module_group_platform",
+      "target": "plugin_runtime"
+    },
+    {
+      "source": "module_group_workspace",
+      "target": "plugin_runtime"
+    }
+  ]
+}

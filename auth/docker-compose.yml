@@ -1,0 +1,148 @@
+services:
+  auth-db:
+    image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-local-keycloak-db-change-me}
+    volumes:
+      - keycloak-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  bridge:
+    build: ./bridge
+    restart: unless-stopped
+    environment:
+      BRIDGE_ISSUER: ${BRIDGE_ISSUER:-http://bridge.localhost:8090}
+      BRIDGE_COOKIE_KEYS: ${BRIDGE_COOKIE_KEYS:-local-cookie-key-change-me}
+      KEYCLOAK_BROKER_CLIENT_SECRET: ${KEYCLOAK_BROKER_CLIENT_SECRET:-local-bridge-secret-change-me}
+      KEYCLOAK_BROKER_REDIRECT_URI: ${KEYCLOAK_BROKER_REDIRECT_URI:-http://keycloak.localhost:8090/realms/amperun/broker/wecom/endpoint}
+      IDENTITY_REGISTRY_PATH: /data/identity-registry.json
+      WECOM_MODE: ${WECOM_MODE:-mock}
+      WECOM_AUTH_STYLE: ${WECOM_AUTH_STYLE:-qr}
+      WECOM_CORP_ID: ${WECOM_CORP_ID:-}
+      WECOM_AGENT_ID: ${WECOM_AGENT_ID:-}
+      WECOM_APP_SECRET: ${WECOM_APP_SECRET:-}
+      WECOM_ALLOWED_USER_IDS: ${WECOM_ALLOWED_USER_IDS:-}
+    volumes:
+      - bridge-data:/data
+    depends_on:
+      keycloak-client-config:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.2@sha256:98fab020a3a490aba0978f237e2a06cd0ea42bf149c6cf10f11c0aaf27728ff2
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: auth-db
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-local-keycloak-db-change-me}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://keycloak.localhost:8090}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin-local-change-me}
+    volumes:
+      - ./keycloak/amperun-realm.json:/opt/keycloak/data/import/amperun-realm.json:ro
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    networks:
+      - default
+      - openproject-idp-backplane
+
+  keycloak-client-config:
+    image: quay.io/keycloak/keycloak:26.3.2@sha256:98fab020a3a490aba0978f237e2a06cd0ea42bf149c6cf10f11c0aaf27728ff2
+    restart: "no"
+    entrypoint: ["/bin/bash"]
+    command: ["/opt/amperun/configure-clients.sh"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin-local-change-me}
+      KEYCLOAK_BROKER_CLIENT_SECRET: ${KEYCLOAK_BROKER_CLIENT_SECRET:-local-bridge-secret-change-me}
+      OPENPROJECT_OIDC_CLIENT_SECRET: ${OPENPROJECT_OIDC_CLIENT_SECRET:-local-openproject-oidc-secret-change-me}
+      WECOM_MODE: ${WECOM_MODE:-mock}
+      BRIDGE_ISSUER: ${BRIDGE_ISSUER:-http://bridge.localhost:8090}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://keycloak.localhost:8090}
+      KEYCLOAK_BROKER_REDIRECT_URI: ${KEYCLOAK_BROKER_REDIRECT_URI:-http://keycloak.localhost:8090/realms/amperun/broker/wecom/endpoint}
+      OPENPROJECT_PUBLIC_URL: ${OPENPROJECT_PUBLIC_URL:-http://openproject.localhost:8090}
+    volumes:
+      - ./keycloak/configure-clients.sh:/opt/amperun/configure-clients.sh:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  gateway:
+    image: caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      BRIDGE_PUBLIC_HOST: ${BRIDGE_PUBLIC_HOST:-bridge.localhost}
+      KEYCLOAK_PUBLIC_HOST: ${KEYCLOAK_PUBLIC_HOST:-keycloak.localhost}
+      OPENPROJECT_GATEWAY_HOST: ${OPENPROJECT_GATEWAY_HOST:-openproject.localhost}
+      OPENPROJECT_ADMIN_GATEWAY_HOST: ${OPENPROJECT_ADMIN_GATEWAY_HOST:-openproject-admin.localhost}
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      bridge:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      op-web:
+        condition: service_healthy
+      hocuspocus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8090/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      default:
+        aliases:
+          - bridge.localhost
+          - keycloak.localhost
+          - openproject.localhost
+          - openproject-admin.localhost
+      openproject-idp-backplane:
+        aliases:
+          - keycloak.localhost
+      openproject-edge-backplane:
+      openproject-collaboration-edge:
+
+volumes:
+  bridge-data:
+  keycloak-db:
+
+networks:
+  openproject-collaboration-backplane:
+    internal: true
+  openproject-collaboration-edge:
+    internal: true
+  openproject-idp-backplane:
+    internal: true
+  openproject-edge-backplane:
+    internal: true
+  openproject-runtime:
+    internal: true

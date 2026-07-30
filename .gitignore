@@ -112,6 +112,8 @@ npm-debug.log*
 /frontend/dist/
 /frontend/tests/*.gif
 node_modules/
+__pycache__/
+*.py[cod]
 
 # Ignore global package-lock.json that generates
 plaintext.yml

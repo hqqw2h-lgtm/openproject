@@ -1,9 +1,10 @@
 ARG RUBY_VERSION="4.0.2"
+ARG RUBY_IMAGE_DIGEST="sha256:12f002ff598856284c9fd35526712d5431c47d60dd91eb3a00f9e01777c762d5"
 ARG DEBIAN_BASE="trixie"
 # Add SBOM scan context for intermediate steps
 ARG BUILDKIT_SBOM_SCAN_CONTEXT=true
 ARG BUILDKIT_SBOM_SCAN_STAGE=true
-FROM ruby:${RUBY_VERSION}-slim-trixie AS runtime-base
+FROM ruby:${RUBY_VERSION}-slim-trixie@${RUBY_IMAGE_DIGEST} AS runtime-base
 LABEL maintainer="operations@openproject.com"
 
 ARG NODE_VERSION="24.18.0"
@@ -71,7 +72,10 @@ FROM build-base AS app-build
 
 # stuff required for gems
 COPY Gemfile Gemfile.* .ruby-version ./
+COPY docker/prod/setup/validate-source-tree.sh docker/prod/setup/required-module-locales.txt ./docker/prod/setup/
+COPY config/locales ./config/locales
 COPY modules ./modules
+RUN bash ./docker/prod/setup/validate-source-tree.sh --build-context
 # Add vendor for saas-openproject plugins
 COPY vendor ./vendor
 # Add lib in case a plugin tries to load VERSION file under lib
@@ -116,6 +120,18 @@ EXPOSE 8080
 CMD ["./docker/prod/web"]
 ENTRYPOINT ["./docker/prod/entrypoint-slim.sh"]
 VOLUME ["$APP_DATA_PATH"]
+
+# -------------------------------------
+# slim-unlocked (GPLv3 fork)
+# -------------------------------------
+FROM slim AS slim-unlocked
+
+LABEL org.opencontainers.image.source="https://github.com/hqqw2h-lgtm/openproject"
+LABEL org.opencontainers.image.description="OpenProject with GPLv3 Enterprise add-ons enabled"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"
+
+ENV OPENPROJECT_ENTERPRISE__FEATURES__UNLOCKED=true
+ENV OPENPROJECT_EE__HIDE__BANNERS=true
 
 # -------------------------------------
 # slim-bim (public)

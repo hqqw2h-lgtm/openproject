@@ -1,0 +1,168 @@
+x-openproject-app: &openproject-app
+  image: amperun/openproject:17.8.0-unlocked
+  build:
+    context: ${OPENPROJECT_SOURCE_DIR:-../openproject}
+    dockerfile: docker/prod/Dockerfile
+    target: slim-unlocked
+    args:
+      BIM_SUPPORT: "false"
+  restart: unless-stopped
+  environment: &openproject-environment
+    OPENPROJECT_HTTPS: "false"
+    OPENPROJECT_HSTS: "false"
+    OPENPROJECT_HOST__NAME: ${OPENPROJECT_PUBLIC_HOST:-openproject.localhost:8090}
+    OPENPROJECT_ADDITIONAL__HOST__NAMES: '["${OPENPROJECT_ADMIN_HOST:-openproject-admin.localhost:8090}","op-web"]'
+    OPENPROJECT_RAILS__CACHE__STORE: memcache
+    OPENPROJECT_CACHE__MEMCACHE__SERVER: op-cache:11211
+    OPENPROJECT_DEFAULT__LANGUAGE: zh-CN
+    OPENPROJECT_ENTERPRISE__FEATURES__UNLOCKED: "true"
+    OPENPROJECT_EE__HIDE__BANNERS: "true"
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_DISPLAY__NAME: 企业微信
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_IDENTIFIER: openproject
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_SECRET: ${OPENPROJECT_OIDC_CLIENT_SECRET:-local-openproject-oidc-secret-change-me}
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://keycloak.localhost:8090}/realms/amperun
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_AUTHORIZATION__ENDPOINT: ${KEYCLOAK_PUBLIC_URL:-http://keycloak.localhost:8090}/realms/amperun/protocol/openid-connect/auth
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_TOKEN__ENDPOINT: http://keycloak:8080/realms/amperun/protocol/openid-connect/token
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_USERINFO__ENDPOINT: http://keycloak:8080/realms/amperun/protocol/openid-connect/userinfo
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_JWKS__URI: http://keycloak:8080/realms/amperun/protocol/openid-connect/certs
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_END__SESSION__ENDPOINT: ${KEYCLOAK_PUBLIC_URL:-http://keycloak.localhost:8090}/realms/amperun/protocol/openid-connect/logout
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_POST__LOGOUT__REDIRECT__URI: ${OPENPROJECT_PUBLIC_URL:-http://openproject.localhost:8090}/
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_SCOPE: openid profile email
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_LIMIT__SELF__REGISTRATION: "false"
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_ATTRIBUTE__MAP_LOGIN: preferred_username
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_ATTRIBUTE__MAP_EMAIL: email
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_ATTRIBUTE__MAP_FIRST__NAME: given_name
+    OPENPROJECT_OPENID__CONNECT_KEYCLOAK_ATTRIBUTE__MAP_LAST__NAME: family_name
+    OPENPROJECT_REAL__TIME__TEXT__COLLABORATION__ENABLED: "true"
+    OPENPROJECT_COLLABORATIVE__EDITING__HOCUSPOCUS__URL: ${OPENPROJECT_COLLABORATION_PUBLIC_URL:-ws://openproject.localhost:8090/hocuspocus}
+    OPENPROJECT_COLLABORATIVE__EDITING__HOCUSPOCUS__SECRET: ${COLLABORATIVE_SERVER_SECRET:-local-collaboration-secret-change-me}
+    OPENPROJECT_SEED__ADMIN__USER__PASSWORD__RESET: "false"
+    OPENPROJECT_SEED__ADMIN__USER__PASSWORD: ${OPENPROJECT_ADMIN_PASSWORD:-admin}
+    DATABASE_URL: postgres://openproject:${OPENPROJECT_DB_PASSWORD:-local-openproject-db-change-me}@op-db/openproject?pool=20&encoding=unicode&reconnect=true
+    SECRET_KEY_BASE: ${OPENPROJECT_SECRET_KEY_BASE:-local-openproject-secret-key-base-change-me-32chars}
+    RAILS_MIN_THREADS: "2"
+    RAILS_MAX_THREADS: "8"
+  volumes:
+    - openproject-assets:/var/openproject/assets
+
+services:
+  op-db:
+    image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: openproject
+      POSTGRES_USER: openproject
+      POSTGRES_PASSWORD: ${OPENPROJECT_DB_PASSWORD:-local-openproject-db-change-me}
+    volumes:
+      - openproject-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openproject -d openproject"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - openproject-runtime
+
+  op-cache:
+    image: memcached:1.6-alpine@sha256:c29847751abb41f4c268c84fb3087fee05d4edcbda44409ccb5086e26148e8a7
+    restart: unless-stopped
+    networks:
+      - openproject-runtime
+
+  op-seeder:
+    <<: *openproject-app
+    command: ./docker/prod/seeder
+    restart: on-failure
+    depends_on:
+      op-db:
+        condition: service_healthy
+      op-cache:
+        condition: service_started
+      bridge:
+        condition: service_healthy
+    networks:
+      - openproject-runtime
+
+  op-community-feature-config:
+    <<: *openproject-app
+    command: ["bundle", "exec", "rails", "runner", "/opt/amperun/configure-community-knowledge-base.rb"]
+    restart: "no"
+    environment:
+      <<: *openproject-environment
+      OPENPROJECT_POC_PUBLIC_KNOWLEDGE_BASE: "true"
+    volumes:
+      - openproject-assets:/var/openproject/assets
+      - ${OPENPROJECT_SOURCE_DIR:-../openproject}/docker/poc/wecom-sso/configure-community-knowledge-base.rb:/opt/amperun/configure-community-knowledge-base.rb:ro
+    depends_on:
+      op-db:
+        condition: service_healthy
+      op-cache:
+        condition: service_started
+      op-seeder:
+        condition: service_completed_successfully
+    networks:
+      - openproject-runtime
+
+  op-web:
+    <<: *openproject-app
+    command: ./docker/prod/web
+    depends_on:
+      op-db:
+        condition: service_healthy
+      op-cache:
+        condition: service_started
+      op-seeder:
+        condition: service_completed_successfully
+      op-community-feature-config:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health_checks/default"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 45s
+    networks:
+      - openproject-runtime
+      - openproject-edge-backplane
+      - openproject-collaboration-backplane
+      - openproject-idp-backplane
+
+  op-worker:
+    <<: *openproject-app
+    command: ./docker/prod/worker
+    depends_on:
+      op-db:
+        condition: service_healthy
+      op-cache:
+        condition: service_started
+      op-seeder:
+        condition: service_completed_successfully
+      op-community-feature-config:
+        condition: service_completed_successfully
+    networks:
+      - openproject-runtime
+      - openproject-idp-backplane
+
+  hocuspocus:
+    image: openproject/hocuspocus:17.6.0@sha256:c26225fcc30e6294bdc9973ad2a5f0930669fcc0744a248f5c98ffd3cbaecb7f
+    restart: unless-stopped
+    environment:
+      SECRET: ${COLLABORATIVE_SERVER_SECRET:-local-collaboration-secret-change-me}
+      OPENPROJECT_URL: http://op-web:8080
+      OPENPROJECT_HTTPS: "false"
+    depends_on:
+      op-web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:1234/hocuspocus').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - openproject-collaboration-backplane
+      - openproject-collaboration-edge
+
+volumes:
+  openproject-db:
+  openproject-assets:

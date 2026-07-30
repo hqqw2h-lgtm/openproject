@@ -15,18 +15,27 @@ Official FAQ confirmation:
 
 ## Modification notice
 
-**Date:** 2026-07-20  
+**Date:** 2026-07-20
+**Integration update:** 2026-07-29
 **Fork:** `hqqw2h-lgtm/openproject`
 
 This fork modifies Enterprise feature gating so that:
 
-1. All Enterprise add-on feature checks succeed without a paid Enterprise token.
-2. Enterprise upsell / trial banners are hidden by default.
+1. The `slim-unlocked` image enables all Enterprise add-on feature checks
+   without a paid Enterprise token.
+2. Enterprise upsell / trial banners are hidden in that image.
+3. A source checkout keeps the standard token-backed behavior unless
+   `enterprise_features_unlocked` is explicitly enabled.
 
 Changed files:
 
 - `app/models/enterprise_token.rb`
 - `config/constants/settings/definition.rb`
+- `docker/prod/Dockerfile`
+- `modules/documents/app/assets/stylesheets/_index.sass`
+- `docker/poc/wecom-sso/`
+- `auth/`
+- `codegraph/`
 
 The original copyright notices and GPLv3 license texts are preserved.
 This modified work is released under the same GPLv3 terms.
