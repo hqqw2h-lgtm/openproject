@@ -1,0 +1,20 @@
+<%#
+  -- copyright
+  OpenProject is an open source project management software.
+  Copyright (C) the OpenProject GmbH
+
+  See COPYRIGHT and LICENSE files for more details.
+  ++#
+%>
+
+<nav
+  class="document-table-of-contents"
+  aria-label="<%= I18n.t('documents.show_edit_view.table_of_contents.label') %>"
+  data-controller="documents--table-of-contents"
+  data-action="documents:table-of-contents-updated@window->documents--table-of-contents#update"
+>
+  <p class="document-table-of-contents--empty" data-documents--table-of-contents-target="empty">
+    <%= I18n.t('documents.show_edit_view.table_of_contents.empty') %>
+  </p>
+  <ol class="document-table-of-contents--list" data-documents--table-of-contents-target="list" hidden></ol>
+</nav>

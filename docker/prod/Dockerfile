@@ -9,6 +9,11 @@ LABEL maintainer="operations@openproject.com"
 
 ARG NODE_VERSION="24.18.0"
 ARG BIM_SUPPORT=true
+ARG NODEJS_DIST_MIRROR="https://nodejs.org/dist"
+ARG DEBIAN_MIRROR="http://deb.debian.org/debian"
+ARG DEBIAN_SECURITY_MIRROR="http://deb.debian.org/debian-security"
+ARG POSTGRESQL_APT_MIRROR="http://apt.postgresql.org/pub/repos/apt"
+ARG RUBYGEMS_MIRROR="https://rubygems.org"
 ENV USE_JEMALLOC=false
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BUNDLE_JOBS=8
@@ -59,16 +64,21 @@ RUN gem install bundler --no-document
 
 # runtime dependencies
 COPY ./docker/prod/setup/preinstall-common.sh ./docker/prod/setup/preinstall-common.sh
-RUN ./docker/prod/setup/preinstall-common.sh
+RUN DEBIAN_MIRROR="$DEBIAN_MIRROR" \
+  DEBIAN_SECURITY_MIRROR="$DEBIAN_SECURITY_MIRROR" \
+  POSTGRESQL_APT_MIRROR="$POSTGRESQL_APT_MIRROR" \
+  ./docker/prod/setup/preinstall-common.sh
 
 FROM runtime-base AS build-base
 ARG NODE_VERSION="24.18.0"
+ARG NODEJS_DIST_MIRROR="https://nodejs.org/dist"
 
 # build-only dependencies
 COPY ./docker/prod/setup/preinstall-build.sh ./docker/prod/setup/preinstall-build.sh
-RUN ./docker/prod/setup/preinstall-build.sh
+RUN NODEJS_DIST_MIRROR="$NODEJS_DIST_MIRROR" ./docker/prod/setup/preinstall-build.sh
 
 FROM build-base AS app-build
+ARG RUBYGEMS_MIRROR="https://rubygems.org"
 
 # stuff required for gems
 COPY Gemfile Gemfile.* .ruby-version ./
@@ -82,7 +92,7 @@ COPY vendor ./vendor
 COPY lib ./lib
 
 COPY ./docker/prod/setup/bundle-install.sh ./vendor/bundle* ./vendor/
-RUN bash vendor/bundle-install.sh && rm vendor/bundle-install.sh
+RUN RUBYGEMS_MIRROR="$RUBYGEMS_MIRROR" bash vendor/bundle-install.sh && rm vendor/bundle-install.sh
 
 COPY . .
 
@@ -129,6 +139,8 @@ FROM slim AS slim-unlocked
 LABEL org.opencontainers.image.source="https://github.com/hqqw2h-lgtm/openproject"
 LABEL org.opencontainers.image.description="OpenProject with GPLv3 Enterprise add-ons enabled"
 LABEL org.opencontainers.image.licenses="GPL-3.0-only"
+
+RUN ruby ./docker/prod/setup/patch-ckeditor-source-mode.rb
 
 ENV OPENPROJECT_ENTERPRISE__FEATURES__UNLOCKED=true
 ENV OPENPROJECT_EE__HIDE__BANNERS=true

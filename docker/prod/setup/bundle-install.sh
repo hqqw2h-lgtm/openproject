@@ -2,6 +2,10 @@
 
 set -e
 
+if [ -n "${RUBYGEMS_MIRROR:-}" ] && [ "$RUBYGEMS_MIRROR" != "https://rubygems.org" ]; then
+  bundle config set --global mirror.https://rubygems.org "$RUBYGEMS_MIRROR"
+fi
+
 bundle config set --local path 'vendor/bundle'
 bundle config set --local without 'test development'
 bundle install --jobs=8 --retry=3

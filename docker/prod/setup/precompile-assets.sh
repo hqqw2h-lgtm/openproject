@@ -7,6 +7,7 @@ if [ -f config/frontend_assets.manifest.json ]; then
   echo "Assets have already been precompiled. Reusing."
 else
   echo "Assets need to be compiled"
+  ruby ./docker/prod/setup/patch-ckeditor-source-mode.rb
   JOBS=8 npm install
 
   SECRET_KEY_BASE="$(openssl rand -hex 64)" RAILS_ENV=production DATABASE_URL=nulldb://db \

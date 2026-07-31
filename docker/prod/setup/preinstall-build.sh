@@ -33,7 +33,7 @@ apt-get install -yq --no-install-recommends \
   libclang-dev
 
 if ! command -v node > /dev/null || ! command -v npm > /dev/null; then
-  curl -s https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCHITECTURE}.tar.gz | tar xzf - -C /usr/local --strip-components=1
+  curl -fsSL "${NODEJS_DIST_MIRROR:-https://nodejs.org/dist}/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCHITECTURE}.tar.gz" | tar xzf - -C /usr/local --strip-components=1
 fi
 
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

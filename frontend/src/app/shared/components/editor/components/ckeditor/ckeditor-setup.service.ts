@@ -12,6 +12,36 @@ import { ConfigurationService } from 'core-app/core/config/configuration.service
 export type ICKEditorType = 'full'|'constrained';
 export type ICKEditorMacroType = 'none'|'resource'|'full'|boolean|string[];
 
+export function normalizeCKEditorLocale(locale:string):string {
+  return locale.toLowerCase();
+}
+
+interface CKEditorWithToolbarItems {
+  ui?:{
+    view?:{
+      toolbar?:{
+        items?:object;
+      };
+    };
+  };
+}
+
+export function removeUnavailableCKEditorToolbarItems(editor:CKEditorWithToolbarItems):void {
+  const toolbarItems = editor.ui?.view?.toolbar?.items;
+  // CKEditor exposes the rendered toolbar entries only through this private collection.
+  const items:unknown = toolbarItems ? Reflect.get(toolbarItems, '_items') : undefined;
+
+  if (!Array.isArray(items)) {
+    return;
+  }
+
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index] === null || items[index] === undefined) {
+      items.splice(index, 1);
+    }
+  }
+}
+
 declare global {
   interface Window {
     OPConstrainedEditor:ICKEditorStatic;
@@ -172,9 +202,11 @@ export class CKEditorSetupService {
   }
 
   private async loadLocale():Promise<void> {
+    const locale = normalizeCKEditorLocale(I18n.locale);
+
     try {
-      await import(`../../../../../../vendor/ckeditor/translations/${I18n.locale}.js`);
-      this.loadedLocale = I18n.locale;
+      await import(`../../../../../../vendor/ckeditor/translations/${locale}.js`);
+      this.loadedLocale = locale;
     } catch (e:unknown) {
       console.warn(`Failed to load translation for CKEditor: ${e as string}`);
     }

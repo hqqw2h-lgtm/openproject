@@ -37,7 +37,10 @@ import {
   ICKEditorInstance,
   ICKEditorWatchdog,
 } from 'core-app/shared/components/editor/components/ckeditor/ckeditor.types';
-import { CKEditorSetupService } from 'core-app/shared/components/editor/components/ckeditor/ckeditor-setup.service';
+import {
+  CKEditorSetupService,
+  removeUnavailableCKEditorToolbarItems,
+} from 'core-app/shared/components/editor/components/ckeditor/ckeditor-setup.service';
 import { CodeMirrorLoaderService } from 'core-app/shared/components/editor/components/ckeditor/codemirror-loader.service';
 import { KeyCodes } from 'core-app/shared/helpers/keycodes';
 import { debugLog } from 'core-app/shared/helpers/debug_output';
@@ -237,7 +240,13 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
 
         // Switch mode
         editor.on('op:source-code-enabled', () => this.enableManualMode());
-        editor.on('op:source-code-disabled', () => this.disableManualMode());
+        editor.on('op:source-code-disabled', () => {
+          // CKEditor leaves empty entries behind for toolbar items whose plugins
+          // were removed for the current context. setData refreshes those items,
+          // so compact the collection only after restoring the WYSIWYG content.
+          this.disableManualMode();
+          removeUnavailableCKEditorToolbarItems(editor);
+        });
 
         // Capture CTRL+ENTER commands
         this.interceptModifiedEnterKeystrokes(editor);

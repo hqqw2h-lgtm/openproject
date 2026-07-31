@@ -6,6 +6,11 @@ x-openproject-app: &openproject-app
     target: slim-unlocked
     args:
       BIM_SUPPORT: "false"
+      DEBIAN_MIRROR: ${DEBIAN_MIRROR:-https://mirrors.aliyun.com/debian}
+      DEBIAN_SECURITY_MIRROR: ${DEBIAN_SECURITY_MIRROR:-https://mirrors.aliyun.com/debian-security}
+      POSTGRESQL_APT_MIRROR: ${POSTGRESQL_APT_MIRROR:-https://mirrors.aliyun.com/postgresql/repos/apt}
+      RUBYGEMS_MIRROR: ${RUBYGEMS_MIRROR:-https://mirrors.aliyun.com/rubygems}
+      NODEJS_DIST_MIRROR: ${NODEJS_DIST_MIRROR:-https://npmmirror.com/mirrors/node}
   restart: unless-stopped
   environment: &openproject-environment
     OPENPROJECT_HTTPS: "false"
