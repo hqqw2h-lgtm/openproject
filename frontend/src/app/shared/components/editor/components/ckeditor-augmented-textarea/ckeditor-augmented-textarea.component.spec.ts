@@ -73,4 +73,45 @@ describe('CkeditorAugmentedTextareaComponent', () => {
 
     expect(sync).toHaveBeenCalledTimes(1);
   });
+
+  it('passes the standalone BlockNote source configuration to CKEditor', () => {
+    const form = document.createElement('form');
+    const textarea = document.createElement('textarea');
+    textarea.id = 'wiki-page-text';
+    form.append(textarea, fixture.nativeElement as HTMLElement);
+    document.body.append(form);
+
+    component.textAreaId = textarea.id;
+    component.blockNoteSourceMode = true;
+    component.blockNoteActiveUser = { id: 7, username: 'Ada' };
+    component.blockNoteAttachmentsUploadUrl = '/api/v3/wiki_pages/3/attachments';
+    component.blockNoteAttachmentsCollectionKey = '/api/v3/wiki_pages/3/attachments';
+    component.blockNoteStylesheetUrl = '/assets/blocknote.css';
+    component.blockNoteShadowDomStylesheetUrl = '/assets/styles.css';
+    component.openProjectUrl = 'http://openproject.localhost:8090/';
+
+    component.ngOnInit();
+
+    expect(component.context.blockNoteSourceMode).toEqual({
+      activeUser: { id: 7, username: 'Ada' },
+      attachmentsUploadUrl: '/api/v3/wiki_pages/3/attachments',
+      attachmentsCollectionKey: '/api/v3/wiki_pages/3/attachments',
+      blocknoteStylesheetUrl: '/assets/blocknote.css',
+      shadowDomStylesheetUrl: '/assets/styles.css',
+      openProjectUrl: 'http://openproject.localhost:8090/',
+    });
+
+    form.remove();
+  });
+
+  it('keeps the external mode switch in sync with CKEditor', () => {
+    const toggleManualMode = vi.fn();
+    (component as unknown as { ckEditorInstance:{ toggleManualMode:() => void } }).ckEditorInstance = { toggleManualMode };
+
+    component.sourceModeChanged(true);
+    component.toggleEditorMode();
+
+    expect(component.sourceModeActive).toBe(true);
+    expect(toggleManualMode).toHaveBeenCalledTimes(1);
+  });
 });

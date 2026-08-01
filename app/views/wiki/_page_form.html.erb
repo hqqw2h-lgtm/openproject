@@ -1,42 +1,61 @@
 <%= error_messages_for :page %>
 
 <% resource = ::API::V3::WikiPages::WikiPageRepresenter.new(@page, current_user: current_user, embed_links: true) %>
+<%
+  attachments_collection_key = if @page.persisted?
+                                 ::API::V3::Utilities::PathHelper::ApiV3Path.attachments_by_wiki_page(@page.id)
+                               else
+                                 ""
+                               end
+  attachments_upload_url = if OpenProject::Configuration.direct_uploads? && attachments_collection_key.present?
+                             "#{attachments_collection_key}/prepare"
+                           else
+                             attachments_collection_key
+                           end
+%>
 
-<div class="form--field -required">
-  <%= f.text_field :title, label: t(:label_page_title) %>
+<div class="wiki-editor-form--header">
+  <div class="wiki-editor-form--title form--field -required">
+    <%= f.text_field :title, label: t(:label_page_title) %>
+  </div>
+
+  <div class="wiki-editor-form--actions">
+    <%= link_to t(:button_cancel),
+                { controller: "/wiki", action: "show", project_id: @project, id: (@page.new_record? ? nil : @page) },
+                data: { turbo_confirm: t(:text_are_you_sure) },
+                class: "button -with-icon icon-cancel" %>
+    <%= f.button t(:button_save), class: "button -primary -with-icon icon-checkmark" %>
+  </div>
 </div>
 
-<div class="attributes-group wiki--content--attribute ckeditor--content-scrollable form--field -visible-overflow">
+<div class="wiki-editor-form--metadata">
+  <div class="form--field -required">
+    <%= f.hidden_field :parent_id %>
+    <%= f.select :parent_id,
+                 wiki_page_options_for_select(@wiki.pages),
+                 { label: WikiPage.human_attribute_name(:parent_title), include_blank: false, container_class: "-wide" } %>
+  </div>
+
+  <div class="form--field">
+    <%= f.text_field :journal_notes,
+                     label_options: { label: :"attributes.comment" },
+                     autocomplete: "off",
+                     container_class: "-wide",
+                     placeholder: t(:text_what_did_you_change_click_to_add_comment) %>
+  </div>
+</div>
+
+<div class="wiki-editor-form--content attributes-group wiki--content--attribute ckeditor--content-scrollable form--field -visible-overflow">
   <%= f.text_area :text,
                   cols: 100,
                   rows: 25,
                   class: "wiki-edit",
                   accesskey: accesskey(:edit),
                   with_text_formatting: true,
+                  block_note_source_mode: true,
+                  block_note_attachments_upload_url: attachments_upload_url,
+                  block_note_attachments_collection_key: attachments_collection_key,
                   resource: resource,
                   label_options: { class: "sr-only" },
                   preview_context: preview_context(@page, @project) %>
 </div>
-
-<div class="form--field -required">
-  <%= f.hidden_field :parent_id %>
-  <%= f.select :parent_id,
-               wiki_page_options_for_select(@wiki.pages),
-               { label: WikiPage.human_attribute_name(:parent_title), include_blank: false, container_class: "-wide" } %>
-</div>
-
-<div class="form--field">
-  <%= f.text_field :journal_notes,
-                   class: "-border-on-hover-only -hide-placeholder-on-focus",
-                   label_options: { class: "sr-only", label: :"attributes.comment" },
-                   autocomplete: "off",
-                   container_class: "-wide",
-                   placeholder: t(:text_what_did_you_change_click_to_add_comment) %>
-</div>
-
-<%= f.button t(:button_save), class: "button -primary -with-icon icon-checkmark" %>
-
-<%= link_to t(:button_cancel),
-            { controller: "/wiki", action: "show", project_id: @project, id: (@page.new_record? ? nil : @page) },
-            data: { turbo_confirm: t(:text_are_you_sure) },
-            class: "button -with-icon icon-cancel" %>

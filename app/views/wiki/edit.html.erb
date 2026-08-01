@@ -38,7 +38,7 @@ See COPYRIGHT and LICENSE files for more details.
 <%= labelled_tabular_form_for @page,
                               as: :page,
                               url: { action: "update", id: @page.slug.presence || @old_title },
-                              html: { method: :put, multipart: true, id: "wiki_form" } do |f| %>
+                              html: { method: :put, multipart: true, id: "wiki_form", class: "wiki-editor-form" } do |f| %>
   <%= f.hidden_field :lock_version %>
 
   <%= render partial: "wiki/page_form", locals: { f: f } %>

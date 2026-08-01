@@ -36,12 +36,20 @@ import React from 'react';
 import type { Root } from 'react-dom/client';
 import { createRoot } from 'react-dom/client';
 import OpBlockNoteContainer from '../react/OpBlockNoteContainer';
+import { OpBlockNoteEditor } from '../react/components/OpBlockNoteEditor';
+import * as Y from 'yjs';
 
-class BlockNoteElement extends HTMLElement {
+export class BlockNoteElement extends HTMLElement {
   private editorRoot:HTMLDivElement;
   private editorMount:HTMLDivElement;
   private reactRoot:Root|null = null;
   private renderCallback:((provider:HocuspocusProvider) => void) | null = null;
+  private standaloneDoc:Y.Doc|null = null;
+  private standaloneMarkdown = '';
+  private standaloneInitialized = false;
+  private standaloneMarkdownCompatible = true;
+
+  public initialMarkdown = '';
 
   constructor() {
     super();
@@ -58,25 +66,19 @@ class BlockNoteElement extends HTMLElement {
     this.editorRoot.appendChild(this.editorMount);
     shadowRoot.appendChild(this.editorRoot);
 
-    const blockNoteStylesheetUrl = this.getAttribute('blocknote-stylesheet-url');
-    if (blockNoteStylesheetUrl) {
-      const link = document.createElement('link');
-      link.setAttribute('rel', 'stylesheet');
-      link.setAttribute('href', blockNoteStylesheetUrl);
-      shadowRoot.appendChild(link);
-    }
-
-    const shadowDomStylesheetUrl = this.getAttribute('shadow-dom-stylesheet-url');
-    if (shadowDomStylesheetUrl) {
-      const link = document.createElement('link');
-      link.setAttribute('rel', 'stylesheet');
-      link.setAttribute('href', shadowDomStylesheetUrl);
-      shadowRoot.appendChild(link);
-    }
   }
 
   connectedCallback() {
+    this.ensureStylesheets();
+
     const collaborationEnabled = this.getAttribute('collaboration-enabled') === 'true';
+    const standaloneMarkdownEnabled = this.getAttribute('standalone-markdown') === 'true';
+
+    if (standaloneMarkdownEnabled) {
+      this.renderStandaloneMarkdownEditor();
+      return;
+    }
+
     if (!collaborationEnabled) return;
 
     this.reactRoot = createRoot(this.editorMount);
@@ -105,6 +107,86 @@ class BlockNoteElement extends HTMLElement {
     if (this.reactRoot) {
       this.reactRoot.unmount();
       this.reactRoot = null;
+    }
+
+    this.standaloneDoc?.destroy();
+    this.standaloneDoc = null;
+    this.standaloneInitialized = false;
+    this.standaloneMarkdownCompatible = true;
+  }
+
+  public getMarkdownContent():string {
+    return this.standaloneInitialized ? this.standaloneMarkdown : this.initialMarkdown;
+  }
+
+  private renderStandaloneMarkdownEditor():void {
+    const activeUser = this.parseActiveUser();
+    if (!activeUser) {
+      console.error('Cannot initialize standalone BlockNote editor without an active user.');
+      return;
+    }
+
+    this.standaloneMarkdown = this.initialMarkdown;
+    this.standaloneInitialized = true;
+    this.standaloneMarkdownCompatible = true;
+    this.standaloneDoc = new Y.Doc();
+    this.reactRoot = createRoot(this.editorMount);
+    this.reactRoot.render(
+      React.createElement(
+        ShadowDomWrapper,
+        { target: this.editorMount },
+        React.createElement(OpBlockNoteEditor, {
+          activeUser,
+          readOnly: this.getAttribute('read-only') === 'true',
+          openProjectUrl: this.getAttribute('open-project-url') ?? '',
+          attachmentsUploadUrl: this.getAttribute('attachments-upload-url') ?? '',
+          attachmentsCollectionKey: this.getAttribute('attachments-collection-key') ?? '',
+          captureExternalLinks: document.body.dataset.externalLinksEnabledValue === 'true',
+          doc: this.standaloneDoc,
+          initialMarkdown: this.initialMarkdown,
+          onMarkdownChange: (markdown:string) => {
+            if (!this.standaloneMarkdownCompatible) {
+              return;
+            }
+
+            this.standaloneMarkdown = markdown;
+            this.dispatchEvent(new CustomEvent('markdown-change', {
+              bubbles: true,
+              composed: true,
+              detail: { markdown },
+            }));
+          },
+          onMarkdownCompatibilityError: (lostFragments:string[]) => {
+            this.standaloneMarkdownCompatible = false;
+            this.standaloneMarkdown = this.initialMarkdown;
+            this.dispatchEvent(new CustomEvent('markdown-incompatible', {
+              bubbles: true,
+              composed: true,
+              detail: { lostFragments },
+            }));
+          },
+        })
+      )
+    );
+  }
+
+  private ensureStylesheets():void {
+    const stylesheets = [
+      ['blocknote-stylesheet-url', 'blocknote'],
+      ['shadow-dom-stylesheet-url', 'shadow-dom'],
+    ] as const;
+
+    for (const [attribute, key] of stylesheets) {
+      const url = this.getAttribute(attribute);
+      if (!url || this.shadowRoot?.querySelector(`link[data-op-stylesheet="${key}"]`)) {
+        continue;
+      }
+
+      const link = document.createElement('link');
+      link.setAttribute('rel', 'stylesheet');
+      link.setAttribute('href', url);
+      link.dataset.opStylesheet = key;
+      this.shadowRoot?.appendChild(link);
     }
   }
 

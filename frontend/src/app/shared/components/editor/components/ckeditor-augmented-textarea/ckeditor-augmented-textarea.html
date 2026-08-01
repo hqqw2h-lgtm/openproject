@@ -1,4 +1,12 @@
-<div class="op-ckeditor--wrapper">
+@if (blockNoteSourceMode) {
+  <div class="wiki-block-note-mode-switch" [class.-source-active]="sourceModeActive">
+    <button type="button" class="button" [disabled]="!editorReady" (click)="toggleEditorMode()">
+      {{ sourceModeActive ? text.switchToWysiwyg : text.switchToMarkdown }}
+    </button>
+  </div>
+}
+
+<div class="op-ckeditor--wrapper" [class.wiki-block-note-source-mode]="sourceModeActive">
   <op-ckeditor [context]="context"
                [content]="initialContent"
                (initializeDone)="setup($event)"
@@ -8,6 +16,7 @@
                (editorKeyup)="editorKeyup.emit()"
                (editorBlur)="editorBlurred()"
                (editorFocus)="editorFocused()"
+               (manualModeChanged)="sourceModeChanged($event)"
   />
 </div>
 

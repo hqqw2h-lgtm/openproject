@@ -37,20 +37,6 @@ module OpenProject::Documents
     register "openproject-documents",
              author_url: "http://www.openproject.org",
              bundled: true do
-      ::Redmine::MenuManager.map(:project_menu) do |menu|
-        menu.push :documents,
-                  { controller: "/documents", action: "index" },
-                  caption: :label_document_plural,
-                  before: :members,
-                  icon: "note"
-
-        menu.push :documents_sub_menu,
-                  { controller: "/documents", action: "index" },
-                  parent: :documents,
-                  partial: "documents/menus/menu",
-                  caption: :label_document_plural
-      end
-
       project_module :documents do |_map|
         permission :view_documents,
                    {

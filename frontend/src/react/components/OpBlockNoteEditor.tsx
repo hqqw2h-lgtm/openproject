@@ -48,7 +48,7 @@ import {
   workPackageSlashMenu,
   useHashWpMenu,
 } from 'op-blocknote-extensions';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as Y from 'yjs';
 import { useBlockNoteAttachments } from '../hooks/useBlockNoteAttachments';
 import { useBlockNoteLocale } from '../hooks/useBlockNoteLocale';
@@ -68,6 +68,9 @@ export interface OpBlockNoteEditorProps {
   captureExternalLinks:boolean;
   hocuspocusProvider?:HocuspocusProvider;
   doc:Y.Doc;
+  initialMarkdown?:string;
+  onMarkdownChange?:(markdown:string) => void;
+  onMarkdownCompatibilityError?:(lostFragments:string[]) => void;
 }
 
 export const supportedCodeBlockLanguages = {
@@ -101,6 +104,34 @@ const schema = BlockNoteSchema.create().extend({
 });
 
 export const blockNoteSchema = schema;
+
+const protectedMarkdownPatterns = [
+  /<!--[\s\S]*?-->/g,
+  /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^>\n]*?)?\/?>/g,
+  /\{\{[^}\n]+\}\}/g,
+  /\[\[[^\]\n]+\]\]/g,
+];
+
+function extractProtectedMarkdownFragments(markdown:string):string[] {
+  return protectedMarkdownPatterns.flatMap((pattern) => markdown.match(pattern) ?? []);
+}
+
+export function findLostProtectedMarkdownFragments(original:string, serialized:string):string[] {
+  const serializedCounts = new Map<string, number>();
+  for (const fragment of extractProtectedMarkdownFragments(serialized)) {
+    serializedCounts.set(fragment, (serializedCounts.get(fragment) ?? 0) + 1);
+  }
+
+  return extractProtectedMarkdownFragments(original).filter((fragment) => {
+    const remaining = serializedCounts.get(fragment) ?? 0;
+    if (remaining === 0) {
+      return true;
+    }
+
+    serializedCounts.set(fragment, remaining - 1);
+    return false;
+  });
+}
 
 export interface TableOfContentsEntry {
   id:string;
@@ -163,6 +194,9 @@ export function OpBlockNoteEditor({
   captureExternalLinks,
   hocuspocusProvider,
   doc,
+  initialMarkdown,
+  onMarkdownChange,
+  onMarkdownCompatibilityError,
 }:OpBlockNoteEditorProps) {
   const { localeString, localeDictionary } = useBlockNoteLocale(window.I18n.locale);
   const { enabled: attachmentsEnabled, uploadFile } = useBlockNoteAttachments(attachmentsCollectionKey, attachmentsUploadUrl);
@@ -206,6 +240,29 @@ export function OpBlockNoteEditor({
   const editor = useCreateBlockNote(editorParams, []);
   type EditorType = typeof editor;
   const theme = useOpTheme();
+  const initialMarkdownLoaded = useRef(false);
+
+  useEffect(() => {
+    if (initialMarkdownLoaded.current || initialMarkdown === undefined) {
+      return;
+    }
+
+    initialMarkdownLoaded.current = true;
+    const blocks = editor.tryParseMarkdownToBlocks(initialMarkdown);
+    editor.replaceBlocks(editor.document, blocks);
+    const lostFragments = findLostProtectedMarkdownFragments(initialMarkdown, editor.blocksToMarkdownLossy());
+    if (lostFragments.length > 0) {
+      onMarkdownCompatibilityError?.(lostFragments);
+    }
+  }, [editor, initialMarkdown, onMarkdownCompatibilityError]);
+
+  useEffect(() => {
+    if (!onMarkdownChange) {
+      return undefined;
+    }
+
+    return editor.onChange(() => onMarkdownChange(editor.blocksToMarkdownLossy()));
+  }, [editor, onMarkdownChange]);
 
   const getCustomSlashMenuItems = useCallback((editorInstance:EditorType) => [
     ...getDefaultReactSlashMenuItems(editorInstance),
