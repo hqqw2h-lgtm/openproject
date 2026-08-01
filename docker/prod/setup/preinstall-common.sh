@@ -22,6 +22,14 @@ get_architecture() {
 
 ARCHITECTURE=$(get_architecture)
 
+if [ -n "${DEBIAN_SECURITY_MIRROR:-}" ]; then
+  sed -i "s|http://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g" /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources 2>/dev/null || true
+fi
+
+if [ -n "${DEBIAN_MIRROR:-}" ]; then
+  sed -i "s|http://deb.debian.org/debian|${DEBIAN_MIRROR}|g" /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources 2>/dev/null || true
+fi
+
 apt-get update -qq
 # make sure all dependencies are up to date
 apt-get upgrade -y
@@ -35,7 +43,7 @@ apt-get install -yq --no-install-recommends \
   lsb-release
 
 wget --quiet -O- https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql.gpg -
-echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] ${POSTGRESQL_APT_MIRROR:-http://apt.postgresql.org/pub/repos/apt} $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 
 apt-get update -qq
 apt-get install -yq --no-install-recommends \

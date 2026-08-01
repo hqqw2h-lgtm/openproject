@@ -1,0 +1,108 @@
+.wiki-editor-form
+  &--header
+    align-items: center
+    background: var(--body-background)
+    border-bottom: 1px solid var(--borderColor-default)
+    display: grid
+    gap: var(--base-size-16)
+    grid-template-columns: minmax(0, 1fr) auto
+    padding-block: var(--base-size-8) var(--base-size-12)
+    position: sticky
+    top: 0
+    z-index: 4
+
+  &--title
+    display: contents
+    margin-bottom: 0
+
+    > .form--label
+      align-self: center
+      grid-column: 1
+      grid-row: 1
+
+    > .form--field-container
+      grid-column: 1 / -1
+      grid-row: 2
+      width: 100%
+
+  &--actions
+    display: flex
+    flex: 0 0 auto
+    gap: var(--base-size-8)
+    grid-column: 2
+    grid-row: 1
+
+  &--metadata
+    display: grid
+    gap: var(--base-size-16)
+    grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 2fr)
+    padding-top: var(--base-size-12)
+
+    > .form--field
+      display: grid
+      gap: var(--base-size-4)
+      grid-template-columns: minmax(0, 1fr)
+      margin-bottom: 0
+
+      > .form--label
+        float: none
+        grid-row: 1
+        margin: 0
+        width: auto
+
+      > .form--field-container
+        grid-row: 2
+        margin: 0
+        max-width: none
+        width: 100%
+
+  &--content
+    margin-bottom: 0
+    margin-top: var(--base-size-8)
+
+    .document-editor__toolbar
+      position: static
+
+    .document-editor__editable
+      min-height: max(30rem, calc(100vh - 24rem))
+
+    .ck-editor__source
+      min-height: max(30rem, calc(100vh - 24rem))
+
+    .wiki-block-note-source
+      display: block
+      min-height: max(30rem, calc(100vh - 24rem))
+      width: 100%
+
+    .wiki-block-note-source-mode
+      .document-editor__toolbar
+        display: none
+
+    .wiki-block-note-mode-switch
+      align-items: center
+      border-top: 1px solid var(--borderColor-default)
+      display: flex
+      justify-content: flex-end
+      padding-block: var(--base-size-8)
+
+      .button
+        margin-bottom: 0
+
+@media screen and (max-width: $breakpoint-sm)
+  .wiki-editor-form
+    &--header
+      align-items: stretch
+      grid-template-columns: 1fr
+
+    &--actions
+      grid-column: 1
+      grid-row: 2
+      justify-content: flex-end
+      padding-bottom: 0
+
+    &--title
+      > .form--field-container
+        grid-row: 3
+
+    &--metadata
+      grid-template-columns: 1fr

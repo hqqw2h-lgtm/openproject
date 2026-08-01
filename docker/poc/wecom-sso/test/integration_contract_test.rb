@@ -74,10 +74,27 @@ class WeComSsoIntegrationContractTest < Minitest::Test
     assert_match(/OPENPROJECT_OPENID__CONNECT_KEYCLOAK_SECRET:/, compose)
     refute_match(/OPENPROJECT_NATIVE__SSO__PROVIDERS__DISABLED/, compose)
     refute_match(/OPENPROJECT_AUTH__SOURCE__SSO_HEADER|OPENPROJECT_SEED__LDAP/, compose)
+    refute_match(/openproject-app-backplane/, compose)
     refute_match(/openproject-auth:|openproject-header-gateway:|directory:/, auth_compose)
     refute_nil openproject_client
     assert_includes openproject_client.fetch("redirectUris"),
                     "http://openproject.localhost:8090/auth/keycloak/callback"
+  end
+
+  def test_ckeditor_source_mode_guard_is_applied_before_asset_compilation
+    component = source("frontend/src/app/shared/components/editor/components/ckeditor/op-ckeditor.component.ts")
+    precompile = source("docker/prod/setup/precompile-assets.sh")
+    patch = source("docker/prod/setup/patch-ckeditor-source-mode.rb")
+
+    source_disabled = component.index("editor.on('op:source-code-disabled'")
+    toolbar_cleanup = component.index("removeUnavailableCKEditorToolbarItems(editor)")
+    patch_call = precompile.index("ruby ./docker/prod/setup/patch-ckeditor-source-mode.rb")
+    npm_install = precompile.index("npm install")
+
+    assert_operator(source_disabled, :<, toolbar_cleanup)
+    assert_operator(patch_call, :<, npm_install)
+    assert_includes patch, "i&&e.__currentlyDisabled.indexOf(i)<0&&(i.isEnabled=!0)"
+    assert_includes patch, "Expected exactly one CKEditor source-mode toolbar restore expression"
   end
 
   def test_upgrade_waits_for_the_restore_database_to_be_healthy

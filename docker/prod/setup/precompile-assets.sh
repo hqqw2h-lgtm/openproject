@@ -7,7 +7,8 @@ if [ -f config/frontend_assets.manifest.json ]; then
   echo "Assets have already been precompiled. Reusing."
 else
   echo "Assets need to be compiled"
-  JOBS=8 npm install
+  ruby ./docker/prod/setup/patch-ckeditor-source-mode.rb
+  NPM_CONFIG_AUDIT=false NPM_CONFIG_FUND=false JOBS=8 npm install
 
   SECRET_KEY_BASE="$(openssl rand -hex 64)" RAILS_ENV=production DATABASE_URL=nulldb://db \
     bin/rails openproject:plugins:register_frontend assets:precompile

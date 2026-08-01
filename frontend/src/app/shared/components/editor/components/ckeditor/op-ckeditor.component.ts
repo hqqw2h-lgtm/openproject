@@ -37,11 +37,92 @@ import {
   ICKEditorInstance,
   ICKEditorWatchdog,
 } from 'core-app/shared/components/editor/components/ckeditor/ckeditor.types';
-import { CKEditorSetupService } from 'core-app/shared/components/editor/components/ckeditor/ckeditor-setup.service';
+import {
+  CKEditorSetupService,
+  removeUnavailableCKEditorToolbarItems,
+} from 'core-app/shared/components/editor/components/ckeditor/ckeditor-setup.service';
 import { CodeMirrorLoaderService } from 'core-app/shared/components/editor/components/ckeditor/codemirror-loader.service';
 import { KeyCodes } from 'core-app/shared/helpers/keycodes';
 import { debugLog } from 'core-app/shared/helpers/debug_output';
 import { UntilDestroyedMixin } from 'core-app/shared/helpers/angular/until-destroyed.mixin';
+import type { BlockNoteElement } from 'core-elements/block-note-element';
+
+type WikiBlockNoteSourceMode = NonNullable<ICKEditorContext['blockNoteSourceMode']>;
+
+export async function findEditorModeSwitchButton(root:HTMLElement, label:string):Promise<HTMLButtonElement|undefined> {
+  const findVisibleModeButton = () => [
+    ...root.querySelectorAll<HTMLButtonElement>('.ck-toolbar button'),
+    ...root.ownerDocument.querySelectorAll<HTMLButtonElement>('.ck-toolbar button'),
+  ]
+    .find((button) => {
+      const buttonLabel = button.getAttribute('aria-label')
+        ?? button.getAttribute('data-cke-tooltip-text')
+        ?? button.textContent;
+
+      return buttonLabel?.trim() === label.trim();
+    });
+  let modeButton = findVisibleModeButton();
+
+  if (modeButton) {
+    return modeButton;
+  }
+
+  const popupButtons = Array.from(
+    root.querySelectorAll<HTMLButtonElement>('.ck-toolbar button[aria-haspopup="true"]'),
+  ).filter((button) => !button.disabled && button.getAttribute('aria-disabled') !== 'true');
+
+  for (const popupButton of popupButtons) {
+    const wasExpanded = popupButton.getAttribute('aria-expanded') === 'true';
+
+    if (!wasExpanded) {
+      popupButton.click();
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+
+    modeButton = findVisibleModeButton();
+    if (modeButton) {
+      return modeButton;
+    }
+
+    if (!wasExpanded && popupButton.getAttribute('aria-expanded') === 'true') {
+      popupButton.click();
+    }
+  }
+
+  return undefined;
+}
+
+export function isBlockNoteSaveShortcut(
+  event:Pick<KeyboardEvent, 'ctrlKey'|'metaKey'|'shiftKey'|'altKey'|'key'>,
+):boolean {
+  const key = event.key.toLowerCase();
+  return (event.ctrlKey || event.metaKey)
+    && !event.shiftKey
+    && !event.altKey
+    && (key === 's' || key === 'enter');
+}
+
+export function buildWikiBlockNoteSourceElement(
+  config:WikiBlockNoteSourceMode,
+  markdown:string,
+  onChange:() => void,
+):BlockNoteElement {
+  const editor = document.createElement('op-block-note') as BlockNoteElement;
+  editor.classList.add('wiki-block-note-source');
+  editor.initialMarkdown = markdown;
+  editor.setAttribute('standalone-markdown', 'true');
+  editor.setAttribute('collaboration-enabled', 'false');
+  editor.setAttribute('read-only', 'false');
+  editor.setAttribute('active-user', JSON.stringify(config.activeUser));
+  editor.setAttribute('open-project-url', config.openProjectUrl);
+  editor.setAttribute('attachments-upload-url', config.attachmentsUploadUrl);
+  editor.setAttribute('attachments-collection-key', config.attachmentsCollectionKey);
+  editor.setAttribute('blocknote-stylesheet-url', config.blocknoteStylesheetUrl);
+  editor.setAttribute('shadow-dom-stylesheet-url', config.shadowDomStylesheetUrl);
+  editor.addEventListener('markdown-change', onChange);
+
+  return editor;
+}
 
 @Component({
   selector: 'op-ckeditor',
@@ -60,6 +141,10 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
     if (this.initialized) {
       this.ckEditorInstance.setData(this._content);
     }
+  }
+
+  public get content() {
+    return this._content;
   }
 
   // Output notification once ready
@@ -84,6 +169,8 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
 
   // Output focus events
   @Output() editorFocus = new EventEmitter<string>();
+
+  @Output() manualModeChanged = new EventEmitter<boolean>();
 
   // View container of the replacement used to initialize CKEditor5
   @ViewChild('opCkeditorReplacementContainer', { static: true }) opCkeditorReplacementContainer:ElementRef<HTMLDivElement>;
@@ -117,6 +204,8 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
   // Codemirror instance, initialized lazily when running source mode
   public codeMirrorInstance:CodeMirrorEditor|null = null;
 
+  private wikiBlockNoteElement:BlockNoteElement|null = null;
+
   // Debounce change listener for both CKE and codemirror
   // to read back changes as they happen
   private debouncedEmitter = debounce(
@@ -136,7 +225,9 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
     let content:string;
 
     if (this.manualMode) {
-      content = this.codeMirrorInstance!.getValue();
+      content = this.wikiBlockNoteElement
+        ? this.wikiBlockNoteElement.getMarkdownContent()
+        : this.codeMirrorInstance!.getValue();
     } else {
       content = this.ckEditorInstance.getData({ trim: false });
     }
@@ -187,15 +278,21 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
     }
   }
 
-  /**
-   * Return the current content. This may be outdated a tiny bit.
-   */
-  public get content() {
-    return this._content;
-  }
-
   public get initialized():boolean {
     return this.ckEditorInstance !== undefined;
+  }
+
+  public async toggleManualMode():Promise<void> {
+    const expectedLabel = this.I18n.t(
+      this.manualMode ? 'js.editor.mode.wysiwyg' : 'js.editor.mode.manual',
+    );
+    const modeButton = await findEditorModeSwitchButton(this.elementRef.nativeElement, expectedLabel);
+
+    if (!modeButton) {
+      throw new Error(`Cannot find the CKEditor mode switch button: ${expectedLabel}`);
+    }
+
+    modeButton.click();
   }
 
   ngOnInit() {
@@ -213,6 +310,8 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
   }
 
   ngOnDestroy() {
+    this.destroyWikiBlockNoteElement();
+
     try {
       this.watchdog?.destroy();
     } catch (e) {
@@ -237,7 +336,13 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
 
         // Switch mode
         editor.on('op:source-code-enabled', () => this.enableManualMode());
-        editor.on('op:source-code-disabled', () => this.disableManualMode());
+        editor.on('op:source-code-disabled', () => {
+          // CKEditor leaves empty entries behind for toolbar items whose plugins
+          // were removed for the current context. setData refreshes those items,
+          // so compact the collection only after restoring the WYSIWYG content.
+          this.disableManualMode();
+          removeUnavailableCKEditorToolbarItems(editor);
+        });
 
         // Capture CTRL+ENTER commands
         this.interceptModifiedEnterKeystrokes(editor);
@@ -321,8 +426,10 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
 
     // Apply content to ckeditor
     this.ckEditorInstance.setData(current);
+    this.destroyWikiBlockNoteElement();
     this.codeMirrorInstance = null;
     this.manualMode = false;
+    this.manualModeChanged.emit(false);
   }
 
   /**
@@ -330,6 +437,12 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
    */
   private enableManualMode() {
     const current = this.getRawData();
+
+    if (this.context.blockNoteSourceMode) {
+      this.enableWikiBlockNoteMode(current);
+      return;
+    }
+
     const cmMode = 'gfm';
 
     void this.codeMirrorLoader
@@ -351,6 +464,44 @@ export class OpCkeditorComponent extends UntilDestroyedMixin implements OnInit, 
         setTimeout(() => this.codeMirrorInstance!.refresh(), 100);
         this.manualMode = true;
       });
+  }
+
+  private enableWikiBlockNoteMode(markdown:string):void {
+    const sourcePane = this.elementRef.nativeElement.querySelector<HTMLElement>('.ck-editor__source');
+    const config = this.context.blockNoteSourceMode;
+
+    if (!sourcePane || !config) {
+      throw new Error('Cannot initialize the Wiki BlockNote source editor.');
+    }
+
+    this.destroyWikiBlockNoteElement();
+
+    const editor = buildWikiBlockNoteSourceElement(config, markdown, () => {
+      this.editorFocus.emit();
+      this.debouncedEmitter();
+    });
+    editor.addEventListener('keydown', (event:KeyboardEvent) => {
+      if (isBlockNoteSaveShortcut(event)) {
+        event.preventDefault();
+        this.saveRequested.emit();
+      }
+    });
+    editor.addEventListener('markdown-incompatible', () => {
+      this.Notifications.addError(this.I18n.t('js.editor.mode.block_note_unsupported_content'));
+      void this.toggleManualMode();
+    }, { once: true });
+
+    sourcePane.replaceChildren(editor);
+    this.wikiBlockNoteElement = editor;
+    this.elementRef.nativeElement.classList.add('wiki-block-note-source-mode');
+    this.manualMode = true;
+    this.manualModeChanged.emit(true);
+  }
+
+  private destroyWikiBlockNoteElement():void {
+    this.wikiBlockNoteElement?.remove();
+    this.wikiBlockNoteElement = null;
+    this.elementRef.nativeElement.classList.remove('wiki-block-note-source-mode');
   }
 
   /**

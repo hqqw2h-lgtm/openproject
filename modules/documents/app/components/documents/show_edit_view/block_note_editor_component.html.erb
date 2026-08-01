@@ -83,7 +83,11 @@
       end
     end
 
-    layout.with_tab(name: t(:label_attachment_plural), active: true) do
+    layout.with_tab(name: I18n.t("documents.show_edit_view.table_of_contents.label"), active: true) do
+      render Documents::ShowEditView::TableOfContentsComponent.new
+    end
+
+    layout.with_tab(name: t(:label_attachment_plural)) do
       render Documents::ShowEditView::AttachmentsSidePanelComponent.new(document, readonly:)
     end
   end

@@ -108,6 +108,15 @@ export interface ICKEditorContext {
   disabledMentions?:['user'|'work_package'];
   // overrides the default storage key for revisions
   storageKey?:string;
+  // Replace CodeMirror source mode with the standalone BlockNote Markdown editor.
+  blockNoteSourceMode?:{
+    activeUser:{ id:string|number; username:string };
+    attachmentsUploadUrl:string;
+    attachmentsCollectionKey:string;
+    blocknoteStylesheetUrl:string;
+    shadowDomStylesheetUrl:string;
+    openProjectUrl:string;
+  };
 }
 
 declare global {

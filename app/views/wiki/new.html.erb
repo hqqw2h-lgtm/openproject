@@ -42,7 +42,7 @@ See COPYRIGHT and LICENSE files for more details.
 <%= labelled_tabular_form_for @page,
                               as: :page,
                               url: create_project_wiki_index_path(project_id: @project),
-                              html: { method: :post, multipart: true, id: "wiki_form" } do |f| %>
+                              html: { method: :post, multipart: true, id: "wiki_form", class: "wiki-editor-form" } do |f| %>
 
   <%= render partial: "page_form", locals: { f: f } %>
 

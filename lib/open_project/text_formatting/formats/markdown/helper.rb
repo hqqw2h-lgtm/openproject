@@ -46,7 +46,17 @@ module OpenProject::TextFormatting::Formats
                                         editorType: context[:editor_type] || "full",
                                         previewContext: context[:preview_context],
                                         resource:,
-                                        macros: context.fetch(:macros, true)
+                                        macros: context.fetch(:macros, true),
+                                        blockNoteSourceMode: context.fetch(:block_note_source_mode, false),
+                                        blockNoteActiveUser: {
+                                          id: User.current.id,
+                                          username: User.current.name
+                                        },
+                                        blockNoteAttachmentsUploadUrl: context[:block_note_attachments_upload_url].to_s,
+                                        blockNoteAttachmentsCollectionKey: context[:block_note_attachments_collection_key].to_s,
+                                        blockNoteStylesheetUrl: helpers.variable_asset_path("blocknote.css"),
+                                        blockNoteShadowDomStylesheetUrl: helpers.variable_asset_path("styles.css"),
+                                        openProjectUrl: helpers.root_url
                                       }
       end
 

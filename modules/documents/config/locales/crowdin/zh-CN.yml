@@ -130,6 +130,9 @@ zh-CN:
           无法打开文档，因为无法访问实时文本协作服务器。
           如果问题一直存在，请联系管理员。
       tabs: "“文档”选项卡"
+      table_of_contents:
+        empty: 使用标题后，将在这里自动生成目录。
+        label: 本文目录
     subheader:
       filter:
         label: 文档名称过滤器

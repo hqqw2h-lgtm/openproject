@@ -88,6 +88,20 @@ export class CkeditorAugmentedTextareaComponent extends UntilDestroyedMixin impl
 
   @Input() public storageKey?:string;
 
+  @Input() public blockNoteSourceMode = false;
+
+  @Input() public blockNoteActiveUser:{ id:string|number; username:string }|null = null;
+
+  @Input() public blockNoteAttachmentsUploadUrl = '';
+
+  @Input() public blockNoteAttachmentsCollectionKey = '';
+
+  @Input() public blockNoteStylesheetUrl = '';
+
+  @Input() public blockNoteShadowDomStylesheetUrl = '';
+
+  @Input() public openProjectUrl = '';
+
   // Output save requests (ctrl+enter and cmd+enter)
   @Output() saveRequested = new EventEmitter<string>();
 
@@ -122,7 +136,13 @@ export class CkeditorAugmentedTextareaComponent extends UntilDestroyedMixin impl
 
   public text = {
     attachments: this.I18n.t('js.label_attachments'),
+    switchToMarkdown: this.I18n.t('js.editor.mode.manual'),
+    switchToWysiwyg: this.I18n.t('js.editor.mode.wysiwyg'),
   };
+
+  public sourceModeActive = false;
+
+  public editorReady = false;
 
   private focused = false;
 
@@ -160,6 +180,16 @@ export class CkeditorAugmentedTextareaComponent extends UntilDestroyedMixin impl
       previewContext: this.previewContext,
       removePlugins: this.removePlugins,
       storageKey: this.storageKey,
+      ...(this.blockNoteSourceMode && this.blockNoteActiveUser && {
+        blockNoteSourceMode: {
+          activeUser: this.blockNoteActiveUser,
+          attachmentsUploadUrl: this.blockNoteAttachmentsUploadUrl,
+          attachmentsCollectionKey: this.blockNoteAttachmentsCollectionKey,
+          blocknoteStylesheetUrl: this.blockNoteStylesheetUrl,
+          shadowDomStylesheetUrl: this.blockNoteShadowDomStylesheetUrl,
+          openProjectUrl: this.openProjectUrl,
+        },
+      }),
     };
     if (this.readOnly) {
       this.context.macros = 'none';
@@ -199,7 +229,15 @@ export class CkeditorAugmentedTextareaComponent extends UntilDestroyedMixin impl
     this.editorBlur.emit();
   }
 
-  public async saveForm(evt?:SubmitEvent):Promise<void> {
+  public toggleEditorMode():void {
+    void this.ckEditorInstance.toggleManualMode();
+  }
+
+  public sourceModeChanged(active:boolean):void {
+    this.sourceModeActive = active;
+  }
+
+  public saveForm(evt?:SubmitEvent):void {
     if (CkeditorAugmentedTextareaComponent.inFlight.has(this.formElement)) {
       return;
     }
@@ -253,6 +291,7 @@ export class CkeditorAugmentedTextareaComponent extends UntilDestroyedMixin impl
   }
 
   public setup(editor:ICKEditorInstance) {
+    this.editorReady = true;
     this.setupMarkingReadonlyWhenTextareaIsDisabled(editor);
 
     if (this.halResource?.attachments) {

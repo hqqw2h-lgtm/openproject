@@ -155,6 +155,9 @@ en:
           Unable to open document because the real-time text collaboration server is unreachable.
           Please contact the administrator if the problem persists.
       tabs: "Document tabs"
+      table_of_contents:
+        empty: "Add headings to create a table of contents."
+        label: "Table of contents"
 
     subheader:
       filter:
