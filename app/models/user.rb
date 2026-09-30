@@ -166,7 +166,7 @@ class User < Principal
 
   acts_as_customizable admin_only_allowed: true
 
-  attr_accessor :password, :password_confirmation, :last_before_login_on, :current_password_input
+  attr_accessor :password, :password_confirmation, :last_before_login_on, :current_password_input, :consent_check
 
   validates :login,
             :firstname,
@@ -185,6 +185,8 @@ class User < Principal
 
   validates :mail, email: true, unless: Proc.new { |user| user.mail.blank? }
   validates :mail, length: { maximum: 256, allow_nil: true }
+  # Only on change so that blocking a domain does not make its existing users unsaveable
+  validates :mail, blocked_email_domain: true, if: Proc.new { |user| user.mail_changed? }
 
   validates :password,
             confirmation: {
@@ -413,7 +415,8 @@ class User < Principal
 
   # Is the user authenticated via an external authentication source via OmniAuth?
   def uses_external_authentication?
-    user_auth_provider_links.exists?
+    # using #any? instead of #exists? so that it also works on unpersisted auth provider links
+    user_auth_provider_links.any?
   end
 
   #

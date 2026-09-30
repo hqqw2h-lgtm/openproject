@@ -70,7 +70,7 @@ fr:
         replace_with_system_user: Les remplacer par l'utilisateur "Système"
         unknown_emails_found: Des adresses e-mail inconnues ont été trouvées
         unknown_property: Propriété inconnue
-        what_to_do: Que voulez-vous faire?
+        what_to_do: Que voulez-vous faire ?
         work_package_has_newer_changes: Obsolète ! Ce sujet n'a pas été mis à jour, car les derniers changements sur le serveur étaient plus récents que la "ModifiedDate" du sujet importé. Toutefois, les commentaires sur le sujet ont été importés.
       import_canceled: Importation BCF-XML annulée.
       import_failed: 'Impossible d''importer le fichier BCF : %{error}'
@@ -134,9 +134,9 @@ fr:
   permission_delete_bcf: Supprimer les problèmes BCF
   permission_manage_bcf: Importer et gérer les problèmes BCF
   permission_manage_bcf_explanation: |
-    Permet de gérer les questions BCF, y compris l'importation en masse et les mises à jour.
-    L'importation BCF associe les métadonnées des fichiers aux ressources du projet et peut créer ou mettre à jour les work packages
-    et les commentaires en utilisant les valeurs d'auteur et d'horodatage du fichier importé, agissant ainsi pour le compte des utilisateurs.
+    Permet de gérer les problèmes BCF, notamment leur importation et leur mise à jour de façon groupée.
+    L'importation BCF associe les métadonnées du fichier aux ressources du projet et peut créer ou mettre à jour des lots de travaux
+    et des commentaires en utilisant les valeurs d'auteur et d'horodatage du fichier importé, agissant ainsi pour le compte des utilisateurs.
   permission_manage_ifc_models: Importer et gérer les modèles IFC
   permission_view_ifc_models: Voir les modèles IFC
   permission_view_linked_issues: Voir les problèmes BCF
